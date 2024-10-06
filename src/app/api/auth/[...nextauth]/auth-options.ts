@@ -68,5 +68,12 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: "/auth/signin",
-  }
+  },
+  // Add this to ensure redirection to dashboard after sign in
+  events: {
+    async signIn({ user, account, profile, isNewUser }) {
+      // You can add any additional logic here if needed
+      console.log(user,account,profile,isNewUser)
+    },
+  },
 }

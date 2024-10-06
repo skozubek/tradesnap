@@ -1,8 +1,8 @@
-// File: app/layout.tsx
+// src/app/layout.tsx
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { Providers } from './Providers'
-import Header from '@/components/Header'
+import DynamicLayout from '@/components/DynamicLayout'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -20,8 +20,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <Providers>
-          <Header />
-          <main>{children}</main>
+          <DynamicLayout>{children}</DynamicLayout>
         </Providers>
       </body>
     </html>
