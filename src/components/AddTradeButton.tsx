@@ -3,19 +3,22 @@
 
 import React, { useState } from 'react';
 import AddTradeModal from './AddTradeModal';
+import { useAuth } from '@clerk/nextjs';
 
 interface AddTradeButtonProps {
-  userId: string;
   onTradeAdded: () => Promise<void>;
 }
 
-const AddTradeButton: React.FC<AddTradeButtonProps> = ({ userId, onTradeAdded }) => {
+const AddTradeButton: React.FC<AddTradeButtonProps> = ({ onTradeAdded }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { userId } = useAuth();
 
   const handleTradeAdded = async () => {
     setIsModalOpen(false);
     await onTradeAdded();
   };
+
+  if (!userId) return null;
 
   return (
     <>
@@ -27,7 +30,6 @@ const AddTradeButton: React.FC<AddTradeButtonProps> = ({ userId, onTradeAdded })
       </button>
       {isModalOpen && (
         <AddTradeModal
-          userId={userId}
           onClose={() => setIsModalOpen(false)}
           onTradeAdded={handleTradeAdded}
         />

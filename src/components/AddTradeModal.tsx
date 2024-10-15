@@ -46,7 +46,7 @@ const AddTradeModal: React.FC<AddTradeModalProps> = ({ onClose, onTradeAdded }) 
         throw new Error(errorData.error || 'Failed to add trade');
       }
 
-      onTradeAdded();
+      await onTradeAdded();
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
@@ -66,10 +66,10 @@ const AddTradeModal: React.FC<AddTradeModalProps> = ({ onClose, onTradeAdded }) 
               type="text"
               id="symbol"
               name="symbol"
-              required
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
               value={newTrade.symbol}
               onChange={handleInputChange}
+              required
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
             />
           </div>
           <div>
@@ -78,11 +78,11 @@ const AddTradeModal: React.FC<AddTradeModalProps> = ({ onClose, onTradeAdded }) 
               type="number"
               id="amount"
               name="amount"
+              value={newTrade.amount}
+              onChange={handleInputChange}
               required
               step="0.01"
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-              value={newTrade.amount}
-              onChange={handleInputChange}
             />
           </div>
           <div>
@@ -91,11 +91,11 @@ const AddTradeModal: React.FC<AddTradeModalProps> = ({ onClose, onTradeAdded }) 
               type="number"
               id="price"
               name="price"
+              value={newTrade.price}
+              onChange={handleInputChange}
               required
               step="0.01"
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-              value={newTrade.price}
-              onChange={handleInputChange}
             />
           </div>
           <div>
@@ -103,10 +103,10 @@ const AddTradeModal: React.FC<AddTradeModalProps> = ({ onClose, onTradeAdded }) 
             <select
               id="type"
               name="type"
-              required
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
               value={newTrade.type}
               onChange={handleInputChange}
+              required
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
             >
               <option value="BUY">Buy</option>
               <option value="SELL">Sell</option>

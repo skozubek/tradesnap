@@ -1,14 +1,17 @@
-// src/hooks/useTrades.ts
+// File: src/hooks/useTrades.ts
 import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { Trade } from '@/types';
 
 export const useTrades = () => {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { isLoaded, userId } = useAuth();
 
-  // Use useCallback to ensure fetchTrades is stable across renders
   const fetchTrades = useCallback(async () => {
+    if (!isLoaded || !userId) return;
+
     setLoading(true);
     setError(null);
     try {
@@ -20,14 +23,17 @@ export const useTrades = () => {
       setTrades(data);
     } catch (error) {
       setError('Failed to load trades. Please try again.');
+      console.error('Error fetching trades:', error);
     } finally {
       setLoading(false);
     }
-  }, []); // Empty dependency array means this function won't change
+  }, [isLoaded, userId]);
 
   useEffect(() => {
-    fetchTrades(); // Call fetchTrades only when the component mounts
-  }, [fetchTrades]);
+    if (isLoaded && userId) {
+      fetchTrades();
+    }
+  }, [isLoaded, userId, fetchTrades]);
 
   return { trades, loading, error, fetchTrades };
 };

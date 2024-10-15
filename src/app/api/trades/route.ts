@@ -1,8 +1,7 @@
 // File: src/app/api/trades/route.ts
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/auth-options";
+import { auth } from '@clerk/nextjs/server';
 import { z } from 'zod';
 
 const TradeSchema = z.object({
@@ -14,14 +13,14 @@ const TradeSchema = z.object({
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = auth();
 
-    if (!session?.user?.id) {
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const trades = await prisma.trade.findMany({
-      where: { userId: session.user.id },
+      where: { userId: userId },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -34,9 +33,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = auth();
 
-    if (!session?.user?.id) {
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -45,7 +44,7 @@ export async function POST(request: Request) {
 
     const newTrade = await prisma.trade.create({
       data: {
-        userId: session.user.id,
+        userId: userId,
         ...validatedData,
       },
     });

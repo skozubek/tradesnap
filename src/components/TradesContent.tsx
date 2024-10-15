@@ -1,53 +1,65 @@
-// src/components/TradesContent.tsx
+// File: src/components/TradesContent.tsx
 'use client';
 
 import React from 'react';
 import TradeList from './TradeList';
 import TradeDetails from './TradeDetails';
 import AddTradeButton from './AddTradeButton';
-import { useSession } from 'next-auth/react';
-import { useTrades } from '@/hooks/useTrades'; // Import the custom hook
-import { Loader } from 'lucide-react'; // Import the Loader icon
+import { useUser } from '@clerk/nextjs';
+import { useTrades } from '@/hooks/useTrades';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Trade } from '@/types';
 
 export default function TradesContent() {
-  const { data: session, status } = useSession();
+  const { user, isLoaded } = useUser();
   const [selectedTrade, setSelectedTrade] = React.useState<Trade | null>(null);
 
-  // Use the useTrades hook
   const { trades, loading, error, fetchTrades } = useTrades();
 
-  // Simulated loading delay for testing
   React.useEffect(() => {
-    if (status === 'authenticated') {
+    if (isLoaded && user) {
       fetchTrades();
     }
-  }, [status, fetchTrades]);
+  }, [isLoaded, user, fetchTrades]);
 
-  const handleTradeAdded = async () => {
-    await fetchTrades();
-  };
-
-  if (status === 'loading') {
-    return <div>Loading...</div>;
+  if (!isLoaded) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader2 className="animate-spin h-8 w-8 text-gray-500" />
+      </div>
+    );
   }
 
-  if (status === 'unauthenticated') {
-    return <div>Please sign in to view your trades.</div>;
+  if (!user) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Authentication Error</AlertTitle>
+        <AlertDescription>
+          Please sign in to view your trades.
+        </AlertDescription>
+      </Alert>
+    );
   }
 
   return (
     <div>
       <h1 className="text-3xl font-bold mb-8">Your Trades</h1>
-      {session?.user?.id && (
-        <AddTradeButton userId={session.user.id} onTradeAdded={handleTradeAdded} />
+      <AddTradeButton userId={user.id} onTradeAdded={fetchTrades} />
+      {error && (
+        <Alert variant="destructive" className="mt-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
-      {error && <div className="text-red-500 mb-4">{error}</div>}
       {loading ? (
-        <div className="flex justify-center items-center min-h-screen">
-          <Loader className="animate-spin h-8 w-8 text-gray-500" /> {/* Spinner loader */}
+        <div className="flex justify-center items-center min-h-[200px]">
+          <Loader2 className="animate-spin h-8 w-8 text-gray-500" />
         </div>
       ) : (
-        <div className="flex space-x-4">
+        <div className="flex space-x-4 mt-4">
           <div className="w-1/2">
             <TradeList trades={trades} onTradeSelect={setSelectedTrade} />
           </div>

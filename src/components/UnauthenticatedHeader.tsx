@@ -1,6 +1,9 @@
 // src/components/UnauthenticatedHeader.tsx
+'use client';
+
 import Link from 'next/link';
 import { ThemeSwitcher } from './ThemeSwitcher';
+import { SignInButton, SignUpButton } from "@clerk/nextjs";
 
 const UnauthenticatedHeader = () => {
   return (
@@ -11,12 +14,16 @@ const UnauthenticatedHeader = () => {
             TradeSnap
           </Link>
           <div className="flex items-center space-x-4">
-            <Link href="/auth/signin" className="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white">
-              Sign In
-            </Link>
-            <Link href="/auth/signup" className="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white">
-              Sign Up
-            </Link>
+            <SignInButton mode="modal">
+              <button className="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white">
+                Sign In
+              </button>
+            </SignInButton>
+            <SignUpButton mode="modal">
+              <button className="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white">
+                Sign Up
+              </button>
+            </SignUpButton>
             <ThemeSwitcher />
           </div>
         </div>

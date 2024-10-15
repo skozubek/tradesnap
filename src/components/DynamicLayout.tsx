@@ -1,23 +1,27 @@
-// src/components/DynamicLayout.tsx
+// File: src/components/DynamicLayout.tsx
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useUser } from '@clerk/nextjs';
 import AuthenticatedLayout from './AuthenticatedLayout';
 import UnauthenticatedLayout from './UnauthenticatedLayout';
+import { Loader2 } from 'lucide-react';
 
 interface DynamicLayoutProps {
   children: React.ReactNode;
 }
 
 const DynamicLayout: React.FC<DynamicLayoutProps> = ({ children }) => {
-  const { data: session, status } = useSession();
+  const { isLoaded, isSignedIn } = useUser();
 
-  if (status === 'loading') {
-    // You might want to show a loading spinner here
-    return <div>Loading...</div>;
+  if (!isLoaded) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader2 className="animate-spin h-8 w-8 text-gray-500" />
+      </div>
+    );
   }
 
-  if (session) {
+  if (isSignedIn) {
     return <AuthenticatedLayout>{children}</AuthenticatedLayout>;
   }
 
