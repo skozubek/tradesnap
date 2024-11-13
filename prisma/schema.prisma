@@ -1,4 +1,4 @@
-// File: prisma/schema.prisma
+// prisma/schema.prisma
 
 datasource db {
   provider = "mongodb"
@@ -10,12 +10,21 @@ generator client {
 }
 
 model Trade {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String
-  symbol    String
-  amount    Float
-  price     Float
-  type      String
-  createdAt DateTime @default(now())
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String
+  symbol      String
+  direction   String    // "LONG" or "SHORT"
+  entryPrice  Float
+  stopLoss    Float?
+  takeProfit  Float?
+  quantity    Float
+  timeframe   String
+  strategy    String?
+  notes       String?
+  status      String    // "OPEN" or "CLOSED"
+  pnl         Float?    // Realized profit/loss
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  exitPrice   Float?
+  exitDate    DateTime?
 }
-
