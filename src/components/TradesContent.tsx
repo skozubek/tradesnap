@@ -1,12 +1,13 @@
-// File: src/components/TradesContent.tsx
+// src/components/TradesContent.tsx
 'use client';
 
 import React from 'react';
-import TradeList from './TradeList';
-import TradeDetails from './TradeDetails';
-import AddTradeButton from './AddTradeButton';
 import { useUser } from '@clerk/nextjs';
 import { useTrades } from '@/hooks/useTrades';
+import TradeList from './TradeList';
+import AddTradeButton from './AddTradeButton';
+import AddTradeModal from './AddTradeModal';
+import TradeDetails from './TradeDetails';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Trade } from '@/types';
@@ -14,7 +15,7 @@ import { Trade } from '@/types';
 export default function TradesContent() {
   const { user, isLoaded } = useUser();
   const [selectedTrade, setSelectedTrade] = React.useState<Trade | null>(null);
-
+  const [tradeToEdit, setTradeToEdit] = React.useState<Trade | null>(null);
   const { trades, loading, error, fetchTrades } = useTrades();
 
   React.useEffect(() => {
@@ -23,9 +24,28 @@ export default function TradesContent() {
     }
   }, [isLoaded, user, fetchTrades]);
 
+  const handleTradeDelete = async (tradeId: string) => {
+    try {
+      const response = await fetch(`/api/trades?id=${tradeId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete trade');
+      }
+
+      await fetchTrades();
+      if (selectedTrade?.id === tradeId) {
+        setSelectedTrade(null);
+      }
+    } catch (error) {
+      console.error('Error deleting trade:', error);
+    }
+  };
+
   if (!isLoaded) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-[200px]">
         <Loader2 className="animate-spin h-8 w-8 text-gray-500" />
       </div>
     );
@@ -45,28 +65,44 @@ export default function TradesContent() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-8">Your Trades</h1>
-      <AddTradeButton userId={user.id} onTradeAdded={fetchTrades} />
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Your Trades</h1>
+        <AddTradeButton onTradeAdded={fetchTrades} />
+      </div>
+
       {error && (
-        <Alert variant="destructive" className="mt-4">
+        <Alert variant="destructive" className="mb-6">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
+
       {loading ? (
         <div className="flex justify-center items-center min-h-[200px]">
           <Loader2 className="animate-spin h-8 w-8 text-gray-500" />
         </div>
       ) : (
-        <div className="flex space-x-4 mt-4">
+        <div className="flex space-x-4">
           <div className="w-1/2">
-            <TradeList trades={trades} onTradeSelect={setSelectedTrade} />
+            <TradeList
+              trades={trades}
+              onTradeSelect={setSelectedTrade}
+              onTradeEdit={setTradeToEdit}
+              onTradeDelete={handleTradeDelete}
+            />
           </div>
           <div className="w-1/2">
             {selectedTrade && <TradeDetails trade={selectedTrade} />}
           </div>
         </div>
+      )}
+
+      {tradeToEdit && (
+        <AddTradeModal
+          trade={tradeToEdit}
+          onClose={() => setTradeToEdit(null)}
+          onTradeAdded={fetchTrades}
+        />
       )}
     </div>
   );

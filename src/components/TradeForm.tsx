@@ -2,9 +2,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '@clerk/nextjs';
-import { Loader2 } from 'lucide-react';
+import { TradeInput } from '@/types';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Select,
   SelectContent,
@@ -12,37 +12,34 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-
-interface TradeFormProps {
-  initialData?: Partial<Trade>;
-  onSubmit: (trade: Partial<Trade>) => Promise<void>;
-  onCancel: () => void;
-}
-
-interface Trade {
-  id?: string;
-  symbol: string;
-  direction: 'LONG' | 'SHORT';
-  entryPrice: number;
-  stopLoss?: number;
-  takeProfit?: number;
-  quantity: number;
-  timeframe: string;
-  strategy?: string;
-  notes?: string;
-  status: 'OPEN' | 'CLOSED';
-}
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  Loader2,
+  X,
+  Save
+} from 'lucide-react';
 
 const TIMEFRAMES = ['1m', '5m', '15m', '30m', '1h', '4h', '1d', '1w'];
 const STRATEGIES = ['Breakout', 'Trend Following', 'Mean Reversion', 'Support/Resistance', 'Other'];
 
-export default function TradeForm({ initialData, onSubmit, onCancel }: TradeFormProps) {
-  const { userId } = useAuth();
+interface TradeFormProps {
+  initialData?: Partial<TradeInput>;
+  onSubmit: (trade: Partial<TradeInput>) => Promise<void>;
+  onCancel: () => void;
+  mode?: 'create' | 'edit';
+}
+
+export default function TradeForm({
+  initialData,
+  onSubmit,
+  onCancel,
+  mode = 'create'
+}: TradeFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const [formData, setFormData] = useState<Partial<Trade>>({
+  const [formData, setFormData] = useState<Partial<TradeInput>>({
     symbol: '',
     direction: 'LONG',
     entryPrice: 0,
@@ -56,11 +53,35 @@ export default function TradeForm({ initialData, onSubmit, onCancel }: TradeForm
     ...initialData,
   });
 
-  const handleChange = (name: keyof Trade, value: any) => {
+  const handleChange = (name: keyof TradeInput, value: any) => {
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+  };
+
+  const validateForm = () => {
+    if (!formData.symbol?.trim()) {
+      throw new Error('Symbol is required');
+    }
+    if (!formData.entryPrice || formData.entryPrice <= 0) {
+      throw new Error('Entry price must be greater than 0');
+    }
+    if (!formData.quantity || formData.quantity <= 0) {
+      throw new Error('Quantity must be greater than 0');
+    }
+    if (formData.stopLoss && formData.direction === 'LONG' && formData.stopLoss >= formData.entryPrice) {
+      throw new Error('Stop loss must be below entry price for long positions');
+    }
+    if (formData.stopLoss && formData.direction === 'SHORT' && formData.stopLoss <= formData.entryPrice) {
+      throw new Error('Stop loss must be above entry price for short positions');
+    }
+    if (formData.takeProfit && formData.direction === 'LONG' && formData.takeProfit <= formData.entryPrice) {
+      throw new Error('Take profit must be above entry price for long positions');
+    }
+    if (formData.takeProfit && formData.direction === 'SHORT' && formData.takeProfit >= formData.entryPrice) {
+      throw new Error('Take profit must be below entry price for short positions');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -69,15 +90,10 @@ export default function TradeForm({ initialData, onSubmit, onCancel }: TradeForm
     setIsSubmitting(true);
 
     try {
-      if (!userId) throw new Error('You must be logged in to submit trades');
-      if (!formData.symbol) throw new Error('Symbol is required');
-      if (!formData.entryPrice || formData.entryPrice <= 0) throw new Error('Entry price must be greater than 0');
-      if (!formData.quantity || formData.quantity <= 0) throw new Error('Quantity must be greater than 0');
-
+      validateForm();
       await onSubmit(formData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred while submitting the trade');
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -85,7 +101,7 @@ export default function TradeForm({ initialData, onSubmit, onCancel }: TradeForm
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="animate-in fade-in-0">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
@@ -97,26 +113,34 @@ export default function TradeForm({ initialData, onSubmit, onCancel }: TradeForm
             type="text"
             value={formData.symbol}
             onChange={(e) => handleChange('symbol', e.target.value.toUpperCase())}
-            className="w-full p-2 border rounded-md"
-            placeholder="e.g., AAPL"
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            placeholder="e.g., BTCUSDT"
             required
           />
         </div>
 
         <div className="space-y-2">
           <label className="text-sm font-medium">Direction</label>
-          <Select
-            value={formData.direction}
-            onValueChange={(value) => handleChange('direction', value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select direction" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="LONG">Long</SelectItem>
-              <SelectItem value="SHORT">Short</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant={formData.direction === 'LONG' ? 'default' : 'outline'}
+              className="flex-1"
+              onClick={() => handleChange('direction', 'LONG')}
+            >
+              <ArrowUpRight className="mr-2 h-4 w-4 text-green-500" />
+              Long
+            </Button>
+            <Button
+              type="button"
+              variant={formData.direction === 'SHORT' ? 'default' : 'outline'}
+              className="flex-1"
+              onClick={() => handleChange('direction', 'SHORT')}
+            >
+              <ArrowDownLeft className="mr-2 h-4 w-4 text-red-500" />
+              Short
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -125,7 +149,7 @@ export default function TradeForm({ initialData, onSubmit, onCancel }: TradeForm
             type="number"
             value={formData.entryPrice}
             onChange={(e) => handleChange('entryPrice', parseFloat(e.target.value))}
-            className="w-full p-2 border rounded-md"
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             step="0.00000001"
             required
           />
@@ -137,7 +161,7 @@ export default function TradeForm({ initialData, onSubmit, onCancel }: TradeForm
             type="number"
             value={formData.quantity}
             onChange={(e) => handleChange('quantity', parseFloat(e.target.value))}
-            className="w-full p-2 border rounded-md"
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             step="0.00000001"
             required
           />
@@ -149,7 +173,7 @@ export default function TradeForm({ initialData, onSubmit, onCancel }: TradeForm
             type="number"
             value={formData.stopLoss}
             onChange={(e) => handleChange('stopLoss', parseFloat(e.target.value))}
-            className="w-full p-2 border rounded-md"
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             step="0.00000001"
           />
         </div>
@@ -160,7 +184,7 @@ export default function TradeForm({ initialData, onSubmit, onCancel }: TradeForm
             type="number"
             value={formData.takeProfit}
             onChange={(e) => handleChange('takeProfit', parseFloat(e.target.value))}
-            className="w-full p-2 border rounded-md"
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             step="0.00000001"
           />
         </div>
@@ -204,8 +228,7 @@ export default function TradeForm({ initialData, onSubmit, onCancel }: TradeForm
           <textarea
             value={formData.notes}
             onChange={(e) => handleChange('notes', e.target.value)}
-            className="w-full p-2 border rounded-md"
-            rows={3}
+            className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             placeholder="Add any trade notes here..."
           />
         </div>
@@ -218,19 +241,24 @@ export default function TradeForm({ initialData, onSubmit, onCancel }: TradeForm
           onClick={onCancel}
           disabled={isSubmitting}
         >
+          <X className="mr-2 h-4 w-4" />
           Cancel
         </Button>
         <Button
           type="submit"
           disabled={isSubmitting}
+          className={mode === 'create' ? 'bg-green-600 hover:bg-green-700' : ''}
         >
           {isSubmitting ? (
             <>
               <Loader2 className="animate-spin mr-2 h-4 w-4" />
-              Saving...
+              {mode === 'create' ? 'Creating...' : 'Updating...'}
             </>
           ) : (
-            'Save Trade'
+            <>
+              <Save className="mr-2 h-4 w-4" />
+              {mode === 'create' ? 'Create Trade' : 'Update Trade'}
+            </>
           )}
         </Button>
       </div>

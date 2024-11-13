@@ -13,18 +13,18 @@ model Trade {
   id          String    @id @default(auto()) @map("_id") @db.ObjectId
   userId      String
   symbol      String
-  direction   String    // "LONG" or "SHORT"
-  entryPrice  Float
+  type        String    // "BUY" or "SELL"
+  price       Float
+  amount      Float
   stopLoss    Float?
   takeProfit  Float?
-  quantity    Float
-  timeframe   String
-  strategy    String?
-  notes       String?
   status      String    // "OPEN" or "CLOSED"
-  pnl         Float?    // Realized profit/loss
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  notes       String?
+  strategyName String?  // Changed from 'strategy' to 'strategyName' to be more explicit
+  timeframe   String?   // Made optional
+  pnl         Float?
   exitPrice   Float?
   exitDate    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
