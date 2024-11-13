@@ -88,7 +88,7 @@ const TradeDetails: React.FC<TradeDetailsProps> = ({ trade }) => {
           <div>
             <p className="text-sm text-muted-foreground">Entry Date</p>
             <p className="font-medium">
-              {format(new Date(trade.createdAt), 'dd/MM/yyyy, HH:mm:ss')}
+              {format(new Date(trade.createdAt), 'dd/MM/yyyy, HH:mm:ss', { timeZone: 'UTC' })}
             </p>
           </div>
           {trade.exitDate && (
