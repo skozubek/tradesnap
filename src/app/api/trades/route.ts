@@ -8,21 +8,21 @@ const TradeSchema = z.object({
   symbol: z.string().min(1).max(20),
   direction: z.enum(['LONG', 'SHORT']),
   entryPrice: z.number().positive(),
-  stopLoss: z.number().optional(),
-  takeProfit: z.number().optional(),
+  stopLoss: z.number().nullable().optional(),
+  takeProfit: z.number().nullable().optional(),
   quantity: z.number().positive(),
   timeframe: z.string().min(1).optional(),
-  strategy: z.string().optional(),
-  notes: z.string().optional(),
+  strategy: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
   status: z.enum(['OPEN', 'CLOSED']),
-  exitPrice: z.number().optional(),
-  exitDate: z.string().datetime().optional(),
+  exitPrice: z.number().nullable().optional(),
+  exitDate: z.string().datetime().nullable().optional(),
 });
 
 // Add GET handler to fetch trades
 export async function GET() {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -44,7 +44,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -93,74 +93,65 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
-    const tradeId = searchParams.get('id');
+    const id = searchParams.get('id'); // Get the trade ID from the query parameters
 
-    if (!tradeId) {
-      return NextResponse.json(
-        { error: 'Trade ID is required' },
-        { status: 400 }
-      );
+    const tradeData = await request.json();
+
+    if (!id) {
+      return NextResponse.json({ error: 'Trade ID is required' }, { status: 400 });
     }
 
-    const body = await request.json();
-    const validatedData = TradeSchema.parse(body);
-
-    const tradeData = {
-      symbol: validatedData.symbol,
-      type: validatedData.direction === 'LONG' ? 'BUY' : 'SELL',
-      price: validatedData.entryPrice,
-      amount: validatedData.quantity,
-      stopLoss: validatedData.stopLoss,
-      takeProfit: validatedData.takeProfit,
-      status: validatedData.status,
-      notes: validatedData.notes,
-      strategyName: validatedData.strategy, // Map strategy to strategyName
-      timeframe: validatedData.timeframe,
-      exitPrice: validatedData.exitPrice,
-      exitDate: validatedData.exitDate ? new Date(validatedData.exitDate) : undefined,
-    };
-
-    const existingTrade = await prisma.trade.findUnique({
-      where: { id: tradeId },
-    });
-
-    if (!existingTrade) {
-      return NextResponse.json(
-        { error: 'Trade not found' },
-        { status: 404 }
-      );
-    }
-
-    if (existingTrade.userId !== userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 403 }
-      );
-    }
+    // Validate the incoming data
+    const validatedData = TradeSchema.parse(tradeData);
 
     const updatedTrade = await prisma.trade.update({
-      where: { id: tradeId },
-      data: tradeData,
+      where: { id },
+      data: {
+        symbol: validatedData.symbol,
+        type: validatedData.direction === 'LONG' ? 'BUY' : 'SELL',
+        price: validatedData.entryPrice,
+        amount: validatedData.quantity,
+        stopLoss: validatedData.stopLoss,
+        takeProfit: validatedData.takeProfit,
+        status: validatedData.status,
+        notes: validatedData.notes,
+        strategyName: validatedData.strategy,
+        timeframe: validatedData.timeframe,
+        exitPrice: validatedData.exitPrice,
+        exitDate: validatedData.exitDate ? new Date(validatedData.exitDate) : undefined,
+      },
     });
 
     return NextResponse.json(updatedTrade);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: error.errors },
-        { status: 400 }
-      );
-    }
     console.error('Error updating trade:', error);
-    return NextResponse.json(
-      { error: 'Failed to update trade' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to update trade' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const tradeId = searchParams.get('id');
+
+    if (!tradeId) {
+      return NextResponse.json({ error: 'Trade ID is required' }, { status: 400 });
+    }
+
+    // Delete the trade from the database
+    await prisma.trade.delete({
+      where: { id: tradeId },
+    });
+
+    return NextResponse.json({ message: 'Trade deleted successfully' }, { status: 200 });
+  } catch (error) {
+    console.error('Error deleting trade:', error);
+    return NextResponse.json({ error: 'Failed to delete trade' }, { status: 500 });
   }
 }

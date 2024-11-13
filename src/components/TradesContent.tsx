@@ -43,6 +43,10 @@ export default function TradesContent() {
     }
   };
 
+  const handleTradeEdit = (trade: Trade) => {
+    setTradeToEdit(trade);
+  };
+
   if (!isLoaded) {
     return (
       <div className="flex justify-center items-center min-h-[200px]">
@@ -87,7 +91,7 @@ export default function TradesContent() {
             <TradeList
               trades={trades}
               onTradeSelect={setSelectedTrade}
-              onTradeEdit={setTradeToEdit}
+              onTradeEdit={handleTradeEdit}
               onTradeDelete={handleTradeDelete}
             />
           </div>

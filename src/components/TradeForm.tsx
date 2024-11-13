@@ -50,7 +50,7 @@ export default function TradeForm({
     strategy: undefined,
     notes: '',
     status: 'OPEN',
-    ...initialData,
+    ...initialData, // Spread initial data here
   });
 
   const handleChange = (name: keyof TradeInput, value: any) => {
