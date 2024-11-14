@@ -1,40 +1,23 @@
-// File: src/components/AddTradeButton.tsx
+// src/components/AddTradeButton.tsx
 'use client';
 
-import React, { useState } from 'react';
-import AddTradeModal from './AddTradeModal';
-import { useAuth } from '@clerk/nextjs';
+import React from 'react';
+import { Plus } from 'lucide-react';
+import { Button } from './ui/button';
 
 interface AddTradeButtonProps {
-  onTradeAdded: () => Promise<void>;
+  onClick: () => void;
 }
 
-const AddTradeButton: React.FC<AddTradeButtonProps> = ({ onTradeAdded }) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const { userId } = useAuth();
-
-  const handleTradeAdded = async () => {
-    setIsModalOpen(false);
-    await onTradeAdded();
-  };
-
-  if (!userId) return null;
-
+const AddTradeButton: React.FC<AddTradeButtonProps> = ({ onClick }) => {
   return (
-    <>
-      <button
-        onClick={() => setIsModalOpen(true)}
-        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-      >
-        Add New Trade
-      </button>
-      {isModalOpen && (
-        <AddTradeModal
-          onClose={() => setIsModalOpen(false)}
-          onTradeAdded={handleTradeAdded}
-        />
-      )}
-    </>
+    <Button
+      onClick={onClick}
+      className="bg-green-600 hover:bg-green-700"
+    >
+      <Plus className="h-5 w-5 mr-2" />
+      Add Trade
+    </Button>
   );
 };
 

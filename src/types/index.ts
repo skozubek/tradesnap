@@ -1,12 +1,9 @@
 // src/types/index.ts
 
-// Trade status type
 export type TradeStatus = 'OPEN' | 'CLOSED';
-
-// Trade direction type
 export type TradeDirection = 'LONG' | 'SHORT';
+export type TradeType = 'BUY' | 'SELL';
 
-// Base trade type without ID and timestamps
 export interface TradeInput {
   symbol: string;
   direction: TradeDirection;
@@ -14,27 +11,30 @@ export interface TradeInput {
   stopLoss?: number;
   takeProfit?: number;
   quantity: number;
-  timeframe: string;
-  strategy?: string;
+  timeframe?: string;
+  strategyName?: string;  // Changed from strategy to strategyName
   notes?: string;
   status: TradeStatus;
   exitPrice?: number;
   exitDate?: string;
 }
 
-// Complete trade type including all fields
-export interface Trade extends TradeInput {
+export interface Trade {
   id: string;
   userId: string;
+  symbol: string;
+  type: TradeType;        // Maps to BUY/SELL
+  price: number;          // Maps to entryPrice in form
+  amount: number;         // Maps to quantity in form
+  stopLoss?: number;
+  takeProfit?: number;
+  status: TradeStatus;
+  notes?: string;
+  strategyName?: string;  // Matches Prisma schema
+  timeframe?: string;
   pnl?: number;
+  exitPrice?: number;
+  exitDate?: Date;
   createdAt: string;
   updatedAt: string;
-}
-
-// Type for trade filters
-export interface TradeFilters {
-  status?: TradeStatus;
-  strategy?: string;
-  symbol?: string;
-  timeframe?: string;
 }

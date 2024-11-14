@@ -1,36 +1,21 @@
 // src/hooks/useTrades.ts
 import { useState, useCallback } from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { Trade, TradeInput, TradeFilters } from '@/types';
+import { Trade, TradeInput } from '@/types';
 
-/**
- * Hook for managing trades with proper error handling and loading states.
- * Maintains compatibility with existing components while adding new functionality.
- */
 export const useTrades = () => {
-  // Maintain existing state structure for backward compatibility
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { isLoaded, userId } = useAuth();
 
-  // Keep existing fetchTrades implementation but enhance it with filters
-  const fetchTrades = useCallback(async (filters?: TradeFilters) => {
+  const fetchTrades = useCallback(async () => {
     if (!isLoaded || !userId) return;
 
     setLoading(true);
     setError(null);
     try {
-      // Build query params while maintaining existing functionality
-      const queryString = filters
-        ? '?' + new URLSearchParams(
-            Object.entries(filters)
-              .filter(([_, value]) => value != null)
-              .map(([key, value]) => [key, String(value)])
-          ).toString()
-        : '';
-
-      const response = await fetch(`/api/trades${queryString}`);
+      const response = await fetch('/api/trades');
       if (!response.ok) {
         throw new Error('Failed to fetch trades');
       }
@@ -44,10 +29,7 @@ export const useTrades = () => {
     }
   }, [isLoaded, userId]);
 
-  // Add new methods while maintaining existing patterns
-  const updateTrade = async (id: string, tradeData: Partial<TradeInput>): Promise<boolean> => {
-    if (!isLoaded || !userId) return false;
-
+  const updateTrade = async (id: string, tradeData: Partial<TradeInput>): Promise<Trade> => {
     setLoading(true);
     try {
       const response = await fetch(`/api/trades?id=${id}`, {
@@ -60,27 +42,43 @@ export const useTrades = () => {
 
       const updatedTrade = await response.json();
       setTrades(current =>
-        current.map(trade =>
-          trade.id === id ? updatedTrade : trade
-        )
+        current.map(trade => trade.id === id ? updatedTrade : trade)
       );
-      return true;
+      return updatedTrade;
     } catch (error) {
       setError('Failed to update trade. Please try again.');
       console.error('Error updating trade:', error);
-      return false;
+      throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  // Return existing properties plus new ones
+  const deleteTrade = async (id: string): Promise<void> => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/trades?id=${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) throw new Error('Failed to delete trade');
+
+      setTrades(current => current.filter(trade => trade.id !== id));
+    } catch (error) {
+      setError('Failed to delete trade. Please try again.');
+      console.error('Error deleting trade:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     trades,
     loading,
     error,
     fetchTrades,
     updateTrade,
-    // Maintain this structure for existing component compatibility
+    deleteTrade,
   };
 };

@@ -5,17 +5,17 @@ import React from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useTrades } from '@/hooks/useTrades';
 import TradeList from './TradeList';
-import AddTradeButton from './AddTradeButton';
 import AddTradeModal from './AddTradeModal';
-import TradeDetails from './TradeDetails';
-import { Loader2, AlertCircle } from 'lucide-react';
+import TradeModal from './TradeModal';
+import { Loader2, AlertCircle, Plus } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { Trade } from '@/types';
 
 export default function TradesContent() {
   const { user, isLoaded } = useUser();
   const [selectedTrade, setSelectedTrade] = React.useState<Trade | null>(null);
-  const [tradeToEdit, setTradeToEdit] = React.useState<Trade | null>(null);
+  const [showAddModal, setShowAddModal] = React.useState(false);
   const { trades, loading, error, fetchTrades } = useTrades();
 
   React.useEffect(() => {
@@ -43,8 +43,9 @@ export default function TradesContent() {
     }
   };
 
-  const handleTradeEdit = (trade: Trade) => {
-    setTradeToEdit(trade);
+  const handleTradeUpdated = (updatedTrade: Trade) => {
+    fetchTrades();
+    setSelectedTrade(updatedTrade);
   };
 
   if (!isLoaded) {
@@ -68,10 +69,16 @@ export default function TradesContent() {
   }
 
   return (
-    <div>
+    <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Your Trades</h1>
-        <AddTradeButton onTradeAdded={fetchTrades} />
+        <Button
+          onClick={() => setShowAddModal(true)}
+          className="bg-green-600 hover:bg-green-700"
+        >
+          <Plus className="h-5 w-5 mr-2" />
+          Add Trade
+        </Button>
       </div>
 
       {error && (
@@ -86,26 +93,28 @@ export default function TradesContent() {
           <Loader2 className="animate-spin h-8 w-8 text-gray-500" />
         </div>
       ) : (
-        <div className="flex space-x-4">
-          <div className="w-1/2">
-            <TradeList
-              trades={trades}
-              onTradeSelect={setSelectedTrade}
-              onTradeEdit={handleTradeEdit}
-              onTradeDelete={handleTradeDelete}
-            />
-          </div>
-          <div className="w-1/2">
-            {selectedTrade && <TradeDetails trade={selectedTrade} />}
-          </div>
-        </div>
+        <TradeList
+          trades={trades}
+          onTradeSelect={setSelectedTrade}
+          onTradeDelete={handleTradeDelete}
+        />
       )}
 
-      {tradeToEdit && (
+      {showAddModal && (
         <AddTradeModal
-          trade={tradeToEdit}
-          onClose={() => setTradeToEdit(null)}
-          onTradeAdded={fetchTrades}
+          onClose={() => setShowAddModal(false)}
+          onTradeAdded={() => {
+            fetchTrades();
+            setShowAddModal(false);
+          }}
+        />
+      )}
+
+      {selectedTrade && (
+        <TradeModal
+          trade={selectedTrade}
+          onClose={() => setSelectedTrade(null)}
+          onTradeUpdated={handleTradeUpdated}
         />
       )}
     </div>
