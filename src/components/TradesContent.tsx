@@ -1,7 +1,7 @@
 // src/components/TradesContent.tsx
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useTrades } from '@/hooks/useTrades';
 import TradeList from './TradeList';
@@ -17,6 +17,11 @@ export default function TradesContent() {
   const [selectedTrade, setSelectedTrade] = React.useState<Trade | null>(null);
   const [showAddModal, setShowAddModal] = React.useState(false);
   const { trades, loading, error, fetchTrades } = useTrades();
+  const [currentDate, setCurrentDate] = useState(Date.now());
+
+  useEffect(() => {
+    setCurrentDate(Date.now());
+  }, []);
 
   React.useEffect(() => {
     if (isLoaded && user) {
@@ -103,8 +108,8 @@ export default function TradesContent() {
       {showAddModal && (
         <AddTradeModal
           onClose={() => setShowAddModal(false)}
-          onTradeAdded={() => {
-            fetchTrades();
+          onTradeAdded={async () => {
+            await fetchTrades();
             setShowAddModal(false);
           }}
         />

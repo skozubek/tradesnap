@@ -84,7 +84,7 @@ export default function TradeModal({ trade, onClose, onTradeUpdated }: TradeModa
                 takeProfit: trade.takeProfit,
                 quantity: trade.amount,
                 timeframe: trade.timeframe,
-                strategy: trade.strategyName,
+                strategyName: trade.strategyName,
                 notes: trade.notes,
                 status: trade.status,
                 exitPrice: trade.exitPrice,

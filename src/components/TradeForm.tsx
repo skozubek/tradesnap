@@ -272,8 +272,8 @@ export default function TradeForm({
         <div className="space-y-2">
           <label className="text-sm font-medium">Strategy</label>
           <Select
-            value={formData.strategy}
-            onValueChange={(value) => handleChange('strategy', value)}
+            value={formData.strategyName}
+            onValueChange={(value) => handleChange('strategyName', value)}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select strategy" />
