@@ -17,13 +17,14 @@ export default function TradesContent() {
   const [selectedTrade, setSelectedTrade] = React.useState<Trade | null>(null);
   const [showAddModal, setShowAddModal] = React.useState(false);
   const { trades, loading, error, fetchTrades } = useTrades();
-  const [currentDate, setCurrentDate] = useState(Date.now());
+  const [mounted, setMounted] = useState(false);
 
+  // Handle mounting to prevent hydration mismatch
   useEffect(() => {
-    setCurrentDate(Date.now());
+    setMounted(true);
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isLoaded && user) {
       fetchTrades();
     }
@@ -52,6 +53,10 @@ export default function TradesContent() {
     fetchTrades();
     setSelectedTrade(updatedTrade);
   };
+
+  if (!mounted) {
+    return null;
+  }
 
   if (!isLoaded) {
     return (
