@@ -5,10 +5,10 @@ import { useCallback } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useTrades } from '@/hooks/useTrades';
 import { tradeService } from '@/lib/services/trade-service';
-import { TradeList } from './trades/TradeList';
+import { TradeList } from './TradeList';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { withErrorBoundary } from './ErrorBoundary';
+import { withErrorBoundary } from '../ErrorBoundary';
 
 function TradesContent() {
   const { user, isLoaded } = useUser();
