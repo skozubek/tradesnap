@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { Providers } from './Providers'
 import DynamicLayout from '@/components/DynamicLayout'
+import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -18,14 +19,15 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <ClerkProvider>
-      <html lang="en">
-        <body className={inter.className}>
-          <Providers>
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.className} suppressHydrationWarning>
+        <Providers>
+          <ClerkProvider dynamic>
             <DynamicLayout>{children}</DynamicLayout>
-          </Providers>
-        </body>
-      </html>
-    </ClerkProvider>
+            <Toaster />
+          </ClerkProvider>
+        </Providers>
+      </body>
+    </html>
   )
 }

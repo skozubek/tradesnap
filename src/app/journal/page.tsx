@@ -1,6 +1,6 @@
 // src/app/journal/page.tsx
 import React from 'react';
-import TradeList from '../../components/TradeList';
+import TradeList from '../../components/trades/TradeList';
 
 const JournalPage = () => {
   return (

@@ -1,62 +1,23 @@
 // src/components/TradesContent.tsx
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useTrades } from '@/hooks/useTrades';
-import TradeList from './TradeList';
-import AddTradeModal from './AddTradeModal';
-import TradeModal from './TradeModal';
-import { Loader2, AlertCircle, Plus } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { Trade } from '@/types';
+import { tradeService } from '@/lib/services/trade-service';
+import { TradeList } from './trades/TradeList';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { withErrorBoundary } from './ErrorBoundary';
 
-export default function TradesContent() {
+function TradesContent() {
   const { user, isLoaded } = useUser();
-  const [selectedTrade, setSelectedTrade] = React.useState<Trade | null>(null);
-  const [showAddModal, setShowAddModal] = React.useState(false);
   const { trades, loading, error, fetchTrades } = useTrades();
-  const [mounted, setMounted] = useState(false);
 
-  // Handle mounting to prevent hydration mismatch
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (isLoaded && user) {
-      fetchTrades();
-    }
-  }, [isLoaded, user, fetchTrades]);
-
-  const handleTradeDelete = async (tradeId: string) => {
-    try {
-      const response = await fetch(`/api/trades?id=${tradeId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete trade');
-      }
-
-      await fetchTrades();
-      if (selectedTrade?.id === tradeId) {
-        setSelectedTrade(null);
-      }
-    } catch (error) {
-      console.error('Error deleting trade:', error);
-    }
-  };
-
-  const handleTradeUpdated = (updatedTrade: Trade) => {
-    fetchTrades();
-    setSelectedTrade(updatedTrade);
-  };
-
-  if (!mounted) {
-    return null;
-  }
+  const handleTradeDelete = useCallback(async (tradeId: string) => {
+    await tradeService.delete(tradeId);
+    await fetchTrades();
+  }, [fetchTrades]);
 
   if (!isLoaded) {
     return (
@@ -70,10 +31,18 @@ export default function TradesContent() {
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Authentication Error</AlertTitle>
         <AlertDescription>
           Please sign in to view your trades.
         </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>{error}</AlertDescription>
       </Alert>
     );
   }
@@ -82,21 +51,7 @@ export default function TradesContent() {
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Your Trades</h1>
-        <Button
-          onClick={() => setShowAddModal(true)}
-          className="bg-green-600 hover:bg-green-700"
-        >
-          <Plus className="h-5 w-5 mr-2" />
-          Add Trade
-        </Button>
       </div>
-
-      {error && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
 
       {loading ? (
         <div className="flex justify-center items-center min-h-[200px]">
@@ -105,28 +60,13 @@ export default function TradesContent() {
       ) : (
         <TradeList
           trades={trades}
-          onTradeSelect={setSelectedTrade}
           onTradeDelete={handleTradeDelete}
-        />
-      )}
-
-      {showAddModal && (
-        <AddTradeModal
-          onClose={() => setShowAddModal(false)}
-          onTradeAdded={async () => {
-            await fetchTrades();
-            setShowAddModal(false);
-          }}
-        />
-      )}
-
-      {selectedTrade && (
-        <TradeModal
-          trade={selectedTrade}
-          onClose={() => setSelectedTrade(null)}
-          onTradeUpdated={handleTradeUpdated}
+          onTradeAdd={fetchTrades}
+          onTradeUpdate={fetchTrades}
         />
       )}
     </div>
   );
 }
+
+export default withErrorBoundary(TradesContent);

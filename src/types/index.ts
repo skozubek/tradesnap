@@ -1,40 +1,49 @@
 // src/types/index.ts
 
+// Core trade types
 export type TradeStatus = 'OPEN' | 'CLOSED';
 export type TradeDirection = 'LONG' | 'SHORT';
 export type TradeType = 'BUY' | 'SELL';
 
-export interface TradeInput {
-  symbol: string;
-  direction: TradeDirection;
-  entryPrice: number;
-  stopLoss?: number;
-  takeProfit?: number;
-  quantity: number;
-  timeframe?: string;
-  strategyName?: string;  // Changed from strategy to strategyName
-  notes?: string;
-  status: TradeStatus;
-  exitPrice?: number;
-  exitDate?: string;
-}
-
+// Main trade interface used by API and DB
 export interface Trade {
   id: string;
   userId: string;
   symbol: string;
-  type: TradeType;        // Maps to BUY/SELL
-  price: number;          // Maps to entryPrice in form
-  amount: number;         // Maps to quantity in form
-  stopLoss?: number;
-  takeProfit?: number;
+  type: TradeType;
+  price: number;
+  amount: number;
+  stopLoss?: number | null;
+  takeProfit?: number | null;
   status: TradeStatus;
   notes?: string;
-  strategyName?: string;  // Matches Prisma schema
+  strategyName?: string;
   timeframe?: string;
   pnl?: number;
   exitPrice?: number;
   exitDate?: Date;
   createdAt: string;
   updatedAt: string;
+}
+
+// Form-specific interface
+export interface TradeFormData {
+  symbol: string;
+  direction: TradeDirection;
+  entryPrice: number;
+  quantity: number;
+  stopLoss: number | null;
+  takeProfit: number | null;
+  timeframe: string | null;
+  strategyName: string | null;
+  notes: string;
+  status: TradeStatus;
+  exitPrice: number | null;
+  exitDate: string | null;
+}
+
+// Simple validation types
+export interface ValidationError {
+  field: string;
+  message: string;
 }

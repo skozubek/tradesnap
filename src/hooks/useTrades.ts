@@ -1,84 +1,51 @@
 // src/hooks/useTrades.ts
-import { useState, useCallback } from 'react';
-import { useAuth } from '@clerk/nextjs';
-import { Trade, TradeInput } from '@/types';
+'use client';
 
-export const useTrades = () => {
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@clerk/nextjs';
+import { Trade } from '@prisma/client';
+import { withErrorHandling, type AppError } from '@/lib/error-utils';
+
+export function useTrades() {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { isLoaded, userId } = useAuth();
+  const { getToken } = useAuth();
 
   const fetchTrades = useCallback(async () => {
-    if (!isLoaded || !userId) return;
+    return withErrorHandling(
+      async () => {
+        setLoading(true);
+        setError(null);
 
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch('/api/trades');
-      if (!response.ok) {
-        throw new Error('Failed to fetch trades');
+        const token = await getToken();
+        const response = await fetch('/api/trades', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch trades');
+        }
+
+        const data = await response.json();
+        setTrades(data);
+      },
+      {
+        onError: (error: AppError) => {
+          setError(error.message);
+          console.error('Error fetching trades:', error);
+        },
       }
-      const data = await response.json();
-      setTrades(data);
-    } catch (error) {
-      setError('Failed to load trades. Please try again.');
-      console.error('Error fetching trades:', error);
-    } finally {
+    ).finally(() => {
       setLoading(false);
-    }
-  }, [isLoaded, userId]);
+    });
+  }, [getToken]);
 
-  const updateTrade = async (id: string, tradeData: Partial<TradeInput>): Promise<Trade> => {
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/trades?id=${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(tradeData),
-      });
+  useEffect(() => {
+    fetchTrades();
+  }, [fetchTrades]);
 
-      if (!response.ok) throw new Error('Failed to update trade');
-
-      const updatedTrade = await response.json();
-      setTrades(current =>
-        current.map(trade => trade.id === id ? updatedTrade : trade)
-      );
-      return updatedTrade;
-    } catch (error) {
-      setError('Failed to update trade. Please try again.');
-      console.error('Error updating trade:', error);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const deleteTrade = async (id: string): Promise<void> => {
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/trades?id=${id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) throw new Error('Failed to delete trade');
-
-      setTrades(current => current.filter(trade => trade.id !== id));
-    } catch (error) {
-      setError('Failed to delete trade. Please try again.');
-      console.error('Error deleting trade:', error);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return {
-    trades,
-    loading,
-    error,
-    fetchTrades,
-    updateTrade,
-    deleteTrade,
-  };
-};
+  return { trades, loading, error, fetchTrades };
+}
