@@ -114,7 +114,10 @@ export async function updateTrade(
         },
       });
 
+      // Revalidate both the trades list and individual trade
       revalidatePath('/trades');
+      revalidatePath(`/trades/${trade.id}`);
+
       return { data: { id: trade.id } };
     } catch (validationError) {
       if (validationError instanceof z.ZodError) {
@@ -170,9 +173,11 @@ export async function createTrade(
         },
       });
 
+      // Revalidate both the trades list and individual trade
       revalidatePath('/trades');
-      return { data: { id: trade.id } };
+      revalidatePath(`/trades/${trade.id}`);
 
+      return { data: { id: trade.id } };
     } catch (validationError) {
       if (validationError instanceof z.ZodError) {
         return {
@@ -185,6 +190,57 @@ export async function createTrade(
       }
       throw validationError;
     }
+  } catch (error) {
+    return { error: handleActionError(error) };
+  }
+}
+
+export async function deleteTrade(
+  id: string
+): Promise<ActionResult<{ success: boolean }>> {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return {
+        error: {
+          type: 'auth',
+          message: 'You must be logged in to delete a trade',
+        },
+      };
+    }
+
+    // Check trade ownership
+    const trade = await prisma.trade.findUnique({
+      where: { id },
+      select: { userId: true },
+    });
+
+    if (!trade) {
+      return {
+        error: {
+          type: 'database',
+          message: 'Trade not found',
+        },
+      };
+    }
+
+    if (trade.userId !== userId) {
+      return {
+        error: {
+          type: 'auth',
+          message: 'You do not have permission to delete this trade',
+        },
+      };
+    }
+
+    await prisma.trade.delete({
+      where: { id },
+    });
+
+    // Revalidate the trades list
+    revalidatePath('/trades');
+
+    return { data: { success: true } };
   } catch (error) {
     return { error: handleActionError(error) };
   }

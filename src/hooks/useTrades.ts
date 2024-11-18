@@ -1,65 +1,176 @@
-// src/hooks/useTrades.ts
-import { useState, useEffect, useCallback } from 'react';
+'use client';
+
+import { useState, useCallback } from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { Trade } from '@prisma/client';
-import { withErrorHandling, type AppError } from '@/lib/error-utils';
 import { useRouter } from 'next/navigation';
+import type { Trade } from '@prisma/client';
+import type { TradeFormData } from '@/lib/validations/trade-schemas';
+import { createTrade, updateTrade, deleteTrade } from '@/lib/actions/trades';
+import { useToast } from '@/hooks/use-toast';
+import type { ActionError } from '@/lib/actions/trades';
 
-export function useTrades() {
-  const [trades, setTrades] = useState<Trade[]>([]);
-  const [loading, setLoading] = useState(true);
+export function useTrades(initialTrades: Trade[] = []) {
+  const [trades, setTrades] = useState<Trade[]>(initialTrades);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { getToken, isSignedIn } = useAuth();
+  const { isSignedIn } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
-  const fetchTrades = useCallback(async () => {
+  // Helper for handling action errors
+  const handleActionError = useCallback((error: ActionError) => {
+    let message = error.message;
+
+    if (error.type === 'validation' && error.errors) {
+      message = error.errors.map(e => e.message).join(', ');
+    }
+
+    toast({
+      variant: "destructive",
+      title: `Error: ${error.type}`,
+      description: message,
+    });
+
+    setError(message);
+  }, [toast]);
+
+  // Create trade
+  const handleCreate = useCallback(async (data: TradeFormData) => {
     if (!isSignedIn) {
       router.push('/sign-in?redirect=/trades');
       return;
     }
 
-    return withErrorHandling(
-      async () => {
-        setLoading(true);
-        setError(null);
+    setLoading(true);
+    setError(null);
 
-        try {
-          const token = await getToken();
-          const response = await fetch('/api/trades', {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
+    try {
+      const result = await createTrade(data);
 
-          if (response.status === 401) {
-            router.push('/sign-in?redirect=/trades');
-            return;
-          }
-
-          if (!response.ok) {
-            throw new Error(`Failed to fetch trades: ${response.statusText}`);
-          }
-
-          const data = await response.json();
-          setTrades(data);
-        } catch (error) {
-          throw new Error('Failed to fetch trades');
-        }
-      },
-      {
-        onError: (error: AppError) => {
-          setError(error.message);
-          console.error('Error fetching trades:', error);
-        },
+      if (result.error) {
+        handleActionError(result.error);
+        return;
       }
-    ).finally(() => {
+
+      if (result.data) {
+        // Optimistic update
+        const optimisticTrade = {
+          id: result.data.id,
+          ...data,
+          userId: 'temp',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        } as Trade;
+
+        setTrades(current => [optimisticTrade, ...current]);
+
+        toast({
+          title: "Trade created",
+          description: "Your trade has been successfully created.",
+        });
+
+        router.refresh();
+      }
+    } catch (error) {
+      console.error('Error creating trade:', error);
+      setError('Failed to create trade');
+    } finally {
       setLoading(false);
-    });
-  }, [getToken, isSignedIn, router]);
+    }
+  }, [isSignedIn, router, toast, handleActionError]);
 
-  useEffect(() => {
-    fetchTrades();
-  }, [fetchTrades]);
+  // Update trade
+  const handleUpdate = useCallback(async (id: string, data: TradeFormData) => {
+    if (!isSignedIn) {
+      router.push('/sign-in?redirect=/trades');
+      return;
+    }
 
-  return { trades, loading, error, fetchTrades };
+    setLoading(true);
+    setError(null);
+    const previousTrades = [...trades];
+
+    try {
+      // Type-safe optimistic update
+      setTrades(currentTrades =>
+        currentTrades.map(trade => {
+          if (trade.id === id) {
+            return {
+              ...trade,
+              ...data,
+              updatedAt: new Date()
+            } as Trade;
+          }
+          return trade;
+        })
+      );
+
+      const result = await updateTrade(id, data);
+
+      if (result.error) {
+        setTrades(previousTrades); // Rollback on error
+        handleActionError(result.error);
+        return;
+      }
+
+      toast({
+        title: "Trade updated",
+        description: "Your trade has been successfully updated.",
+      });
+
+      router.refresh();
+    } catch (error) {
+      setTrades(previousTrades); // Rollback on error
+      console.error('Error updating trade:', error);
+      setError('Failed to update trade');
+    } finally {
+      setLoading(false);
+    }
+  }, [isSignedIn, router, trades, toast, handleActionError]);
+
+  // Delete trade
+  const handleDelete = useCallback(async (id: string) => {
+    if (!isSignedIn) {
+      router.push('/sign-in?redirect=/trades');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    const previousTrades = [...trades];
+
+    try {
+      setTrades(current => current.filter(trade => trade.id !== id));
+
+      const result = await deleteTrade(id);
+
+      if (result.error) {
+        setTrades(previousTrades); // Rollback on error
+        handleActionError(result.error);
+        return;
+      }
+
+      toast({
+        title: "Trade deleted",
+        description: "Your trade has been successfully deleted.",
+      });
+
+      router.refresh();
+    } catch (error) {
+      setTrades(previousTrades); // Rollback on error
+      console.error('Error deleting trade:', error);
+      setError('Failed to delete trade');
+    } finally {
+      setLoading(false);
+    }
+  }, [isSignedIn, router, trades, toast, handleActionError]);
+
+  return {
+    trades,
+    loading,
+    error,
+    handleCreate,
+    handleUpdate,
+    handleDelete
+  };
 }

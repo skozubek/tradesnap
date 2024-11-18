@@ -1,14 +1,42 @@
 // src/app/trades/page.tsx
-import { redirect } from 'next/navigation';
-import { auth } from '@clerk/nextjs/server';
-import TradesContent from '@/components/trades/TradesContent';
+import { Suspense } from 'react'
+import { getTradesForUser } from '@/lib/server/trades'
+import { TradeList } from '@/components/trades/TradeList'
+import { TradesLoading } from '@/components/trades/TradesLoading'
+import { TradesError } from '@/components/trades/TradesError'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 
-export default async function TradesPage() {
-  const { userId } = await auth();
+// Static metadata
+export const metadata = {
+  title: 'Your Trades - TradeSnap',
+  description: 'View and manage your trading history'
+}
 
-  if (!userId) {
-    redirect('/sign-in?redirect=/trades');
+// Main server component for trades
+async function TradesContent() {
+  try {
+    const trades = await getTradesForUser()
+
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Your Trades</h1>
+        </div>
+        <TradeList initialTrades={trades} />
+      </div>
+    )
+  } catch (error) {
+    return <TradesError error={error instanceof Error ? error.message : 'Failed to load trades'} />
   }
+}
 
-  return <TradesContent />;
+// Page component with error boundary and suspense
+export default function TradesPage() {
+  return (
+    <ErrorBoundary fallback={<TradesError />}>
+      <Suspense fallback={<TradesLoading />}>
+        <TradesContent />
+      </Suspense>
+    </ErrorBoundary>
+  )
 }

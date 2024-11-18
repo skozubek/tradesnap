@@ -1,49 +1,20 @@
 // src/types/index.ts
+import type { Trade as PrismaTrade } from '@prisma/client'
 
-// Core trade types
-export type TradeStatus = 'OPEN' | 'CLOSED';
-export type TradeDirection = 'LONG' | 'SHORT';
-export type TradeType = 'BUY' | 'SELL';
+// Export Prisma Trade type as our base Trade type
+export type Trade = PrismaTrade
 
-// Main trade interface used by API and DB
-export interface Trade {
-  id: string;
-  userId: string;
-  symbol: string;
-  type: TradeType;
-  price: number;
-  amount: number;
-  stopLoss?: number | null;
-  takeProfit?: number | null;
-  status: TradeStatus;
-  notes?: string;
-  strategyName?: string;
-  timeframe?: string;
-  pnl?: number;
-  exitPrice?: number;
-  exitDate?: Date;
-  createdAt: string;
-  updatedAt: string;
-}
+// Core trade types derived from Prisma schema
+export type TradeStatus = Trade['status']
+export type TradeType = Trade['type']
 
-// Form-specific interface
-export interface TradeFormData {
-  symbol: string;
-  direction: TradeDirection;
-  entryPrice: number;
-  quantity: number;
-  stopLoss: number | null;
-  takeProfit: number | null;
-  timeframe: string | null;
-  strategyName: string | null;
-  notes: string;
-  status: TradeStatus;
-  exitPrice: number | null;
-  exitDate: string | null;
+// Form-specific interface that extends Prisma Trade
+export interface TradeFormData extends Omit<Trade, 'id' | 'userId' | 'createdAt' | 'updatedAt'> {
+  exitDate: Date | null // Change type to match the original Trade type
 }
 
 // Simple validation types
 export interface ValidationError {
-  field: string;
-  message: string;
+  field: string
+  message: string
 }

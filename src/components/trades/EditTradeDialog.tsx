@@ -1,29 +1,25 @@
-// src/components/trades/EditTradeDialog.tsx
 'use client';
 
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { TradeForm } from '@/components/trades/TradeForm';
-import { updateTrade } from '@/lib/actions/trades';
 import type { TradeFormData } from '@/lib/validations/trade-schemas';
 import type { Trade } from '@prisma/client';
-import { useToast } from '@/hooks/use-toast';
 
 interface EditTradeDialogProps {
   trade: Trade;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onTradeUpdated?: () => void;
+  onSubmit: (data: TradeFormData) => Promise<void>;
 }
 
 export function EditTradeDialog({
   trade,
   open,
   onOpenChange,
-  onTradeUpdated
+  onSubmit
 }: EditTradeDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast();
 
   const initialData: TradeFormData = {
     symbol: trade.symbol,
@@ -43,25 +39,7 @@ export function EditTradeDialog({
   const handleSubmit = async (data: TradeFormData) => {
     try {
       setIsSubmitting(true);
-      const result = await updateTrade(trade.id, data);
-      
-      if (result.error) {
-        throw new Error(result.error.message);
-      }
-
-      toast({
-        title: "Trade updated",
-        description: "Your trade has been successfully updated.",
-      });
-
-      onOpenChange(false);
-      onTradeUpdated?.();
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update trade",
-      });
+      await onSubmit(data);
     } finally {
       setIsSubmitting(false);
     }
@@ -82,5 +60,3 @@ export function EditTradeDialog({
     </Dialog>
   );
 }
-
-export default EditTradeDialog;
