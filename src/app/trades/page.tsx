@@ -1,15 +1,14 @@
-// File: src/app/trades/page.tsx
-
-import { Suspense } from 'react';
+// src/app/trades/page.tsx
+import { redirect } from 'next/navigation';
+import { auth } from '@clerk/nextjs/server';
 import TradesContent from '@/components/TradesContent';
-import { metadata } from './metadata';
 
-export { metadata };
+export default async function TradesPage() {
+  const { userId } = await auth();
 
-export default function TradesPage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <TradesContent />
-    </Suspense>
-  );
+  if (!userId) {
+    redirect('/sign-in?redirect=/trades');
+  }
+
+  return <TradesContent />;
 }

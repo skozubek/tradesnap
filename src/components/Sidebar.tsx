@@ -3,13 +3,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { HomeIcon, ChartBarIcon, BookOpenIcon, CogIcon } from '@heroicons/react/24/outline';
+import { HomeIcon, ChartBarIcon, CogIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/button';
 
 const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
   { name: 'Trades', href: '/trades', icon: ChartBarIcon },
-  { name: 'Journal', href: '/journal', icon: BookOpenIcon },
   { name: 'Settings', href: '/settings', icon: CogIcon },
 ];
 
