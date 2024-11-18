@@ -1,7 +1,7 @@
 // src/app/trades/page.tsx
 import { redirect } from 'next/navigation';
 import { auth } from '@clerk/nextjs/server';
-import TradesContent from '@/components/TradesContent';
+import TradesContent from '@/components/trades/TradesContent';
 
 export default async function TradesPage() {
   const { userId } = await auth();
