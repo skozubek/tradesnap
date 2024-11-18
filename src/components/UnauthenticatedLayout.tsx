@@ -8,7 +8,7 @@ interface UnauthenticatedLayoutProps {
 
 const UnauthenticatedLayout: React.FC<UnauthenticatedLayoutProps> = ({ children }) => {
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen dark:bg-gray-700">
       <UnauthenticatedHeader />
       <main className="flex-grow">
         {children}

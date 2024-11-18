@@ -13,7 +13,7 @@ const AuthenticatedLayout: React.FC<AuthenticatedLayoutProps> = ({ children }) =
       <Sidebar />
       <div className="flex flex-col flex-1">
         <Header />
-        <main className="flex-1 p-8 overflow-y-auto">
+        <main className="flex-1 p-8 overflow-y-auto dark:bg-gray-700">
           {children}
         </main>
       </div>

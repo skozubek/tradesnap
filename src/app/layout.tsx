@@ -5,6 +5,7 @@ import './globals.css'
 import { Providers } from './Providers'
 import DynamicLayout from '@/components/DynamicLayout'
 import { Toaster } from "@/components/ui/toaster"
+import { ThemeProvider } from 'next-themes';
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -22,10 +23,12 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
         <Providers>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <ClerkProvider dynamic>
             <DynamicLayout>{children}</DynamicLayout>
             <Toaster />
           </ClerkProvider>
+          </ThemeProvider>
         </Providers>
       </body>
     </html>
