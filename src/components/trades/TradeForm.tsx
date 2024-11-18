@@ -66,14 +66,22 @@ export function TradeForm({
     reset
   } = form;
 
-  // Reset form when initialData changes
   useEffect(() => {
     if (initialData) {
       reset(initialData);
     }
   }, [initialData, reset]);
 
-  // Watch values for conditional rendering
+  const handleStopLossChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setValue('stopLoss', value === '' ? null : Number(value));
+  };
+
+  const handleTakeProfitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setValue('takeProfit', value === '' ? null : Number(value));
+  };
+
   const tradeStatus = watch('status');
   const tradeType = watch('type');
 
@@ -82,7 +90,6 @@ export function TradeForm({
       onSubmit={handleSubmit(onSubmit)}
       className={cn('space-y-6', className)}
     >
-      {/* Basic Trade Information */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <label className="text-sm font-medium">Symbol</label>
@@ -121,7 +128,7 @@ export function TradeForm({
           <Input
             {...register('price', { valueAsNumber: true })}
             type="number"
-            step="0.00000001"
+            step="0.1"
             placeholder="0.00"
             error={errors.price?.message}
           />
@@ -132,22 +139,22 @@ export function TradeForm({
           <Input
             {...register('amount', { valueAsNumber: true })}
             type="number"
-            step="0.00000001"
+            step="0.1"
             placeholder="0.00"
             error={errors.amount?.message}
           />
         </div>
       </div>
 
-      {/* Risk Management */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <label className="text-sm font-medium">Stop Loss</label>
           <Input
-            {...register('stopLoss', { valueAsNumber: true })}
             type="number"
-            step="0.00000001"
+            step="0.1"
             placeholder={tradeType === 'BUY' ? 'Below entry' : 'Above entry'}
+            defaultValue={watch('stopLoss') || ''}
+            onChange={handleStopLossChange}
             error={errors.stopLoss?.message}
           />
         </div>
@@ -155,16 +162,16 @@ export function TradeForm({
         <div className="space-y-2">
           <label className="text-sm font-medium">Take Profit</label>
           <Input
-            {...register('takeProfit', { valueAsNumber: true })}
             type="number"
-            step="0.00000001"
+            step="0.1"
             placeholder={tradeType === 'BUY' ? 'Above entry' : 'Below entry'}
+            defaultValue={watch('takeProfit') || ''}
+            onChange={handleTakeProfitChange}
             error={errors.takeProfit?.message}
           />
         </div>
       </div>
 
-      {/* Trade Details */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <label className="text-sm font-medium">Status</label>
@@ -240,7 +247,6 @@ export function TradeForm({
         </div>
       </div>
 
-      {/* Exit Information - Only shown for closed trades */}
       {tradeStatus === 'CLOSED' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -248,7 +254,7 @@ export function TradeForm({
             <Input
               {...register('exitPrice', { valueAsNumber: true })}
               type="number"
-              step="0.00000001"
+              step="0.1"
               placeholder="0.00"
               error={errors.exitPrice?.message}
             />
@@ -265,7 +271,6 @@ export function TradeForm({
         </div>
       )}
 
-      {/* Form Actions */}
       <div className="flex justify-end space-x-4 pt-4">
         <Button
           type="button"

@@ -37,7 +37,7 @@ export function EditTradeDialog({
     timeframe: trade.timeframe,
     notes: trade.notes || '',
     exitPrice: trade.exitPrice,
-    exitDate: trade.exitDate ? trade.exitDate.toISOString().slice(0, 16) : null
+    exitDate: trade.exitDate ? new Date(trade.exitDate).toISOString().slice(0, 16) : null,
   };
 
   const handleSubmit = async (data: TradeFormData) => {

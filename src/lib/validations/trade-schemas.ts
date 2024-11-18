@@ -113,7 +113,7 @@ export const tradeFormSchema = z.object({
     .nullable()
     .optional(),
 }).refine((data) => {
-  if (data.stopLoss !== null && data.stopLoss !== undefined) {
+  if (data.stopLoss !== null) {
     const stopLossSchema = createStopLossSchema(data.type, data.price);
     return stopLossSchema.safeParse(data.stopLoss).success;
   }
@@ -122,7 +122,7 @@ export const tradeFormSchema = z.object({
   message: "Invalid stop loss value for trade direction",
   path: ["stopLoss"],
 }).refine((data) => {
-  if (data.takeProfit !== null && data.takeProfit !== undefined) {
+  if (data.takeProfit !== null) {
     const takeProfitSchema = createTakeProfitSchema(data.type, data.price);
     return takeProfitSchema.safeParse(data.takeProfit).success;
   }
