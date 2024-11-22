@@ -1,3 +1,4 @@
+// src/hooks/useTrades.ts
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -8,33 +9,56 @@ import type { TradeFormData } from '@/lib/validations/trade-schemas';
 import { createTrade, updateTrade, deleteTrade } from '@/lib/actions/trades';
 import { useToast } from '@/hooks/use-toast';
 import type { ActionError } from '@/lib/actions/trades';
+import type { PaginatedTrades } from '@/lib/server/trades';
 
-export function useTrades(initialTrades: Trade[] = []) {
-  const [trades, setTrades] = useState<Trade[]>(initialTrades);
+export function useTrades(initialData: PaginatedTrades) {
+  const [trades, setTrades] = useState<Trade[]>(initialData.trades);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(!!initialData.nextCursor);
+  const [currentCursor, setCurrentCursor] = useState(initialData.nextCursor);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const { isSignedIn } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
-  // Helper for handling action errors
   const handleActionError = useCallback((error: ActionError) => {
     let message = error.message;
-
     if (error.type === 'validation' && error.errors) {
       message = error.errors.map(e => e.message).join(', ');
     }
-
     toast({
       variant: "destructive",
       title: `Error: ${error.type}`,
       description: message,
     });
-
     setError(message);
   }, [toast]);
 
-  // Create trade
+  const loadMore = async () => {
+    if (!currentCursor || isLoadingMore) return;
+
+    setIsLoadingMore(true);
+    try {
+      const response = await fetch(`/api/trades?cursor=${currentCursor}`);
+      if (!response.ok) throw new Error('Failed to load more trades');
+
+      const data: PaginatedTrades = await response.json();
+      setTrades(current => [...current, ...data.trades]);
+      setCurrentCursor(data.nextCursor);
+      setHasMore(!!data.nextCursor);
+    } catch (error) {
+      console.error('Error loading more trades:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load more trades",
+      });
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
   const handleCreate = useCallback(async (data: TradeFormData) => {
     if (!isSignedIn) {
       router.push('/sign-in?redirect=/trades');
@@ -53,7 +77,6 @@ export function useTrades(initialTrades: Trade[] = []) {
       }
 
       if (result.data) {
-        // Optimistic update
         const optimisticTrade = {
           id: result.data.id,
           ...data,
@@ -79,7 +102,6 @@ export function useTrades(initialTrades: Trade[] = []) {
     }
   }, [isSignedIn, router, toast, handleActionError]);
 
-  // Update trade
   const handleUpdate = useCallback(async (id: string, data: TradeFormData) => {
     if (!isSignedIn) {
       router.push('/sign-in?redirect=/trades');
@@ -91,7 +113,6 @@ export function useTrades(initialTrades: Trade[] = []) {
     const previousTrades = [...trades];
 
     try {
-      // Type-safe optimistic update
       setTrades(currentTrades =>
         currentTrades.map(trade => {
           if (trade.id === id) {
@@ -108,7 +129,7 @@ export function useTrades(initialTrades: Trade[] = []) {
       const result = await updateTrade(id, data);
 
       if (result.error) {
-        setTrades(previousTrades); // Rollback on error
+        setTrades(previousTrades);
         handleActionError(result.error);
         return;
       }
@@ -120,7 +141,7 @@ export function useTrades(initialTrades: Trade[] = []) {
 
       router.refresh();
     } catch (error) {
-      setTrades(previousTrades); // Rollback on error
+      setTrades(previousTrades);
       console.error('Error updating trade:', error);
       setError('Failed to update trade');
     } finally {
@@ -128,7 +149,6 @@ export function useTrades(initialTrades: Trade[] = []) {
     }
   }, [isSignedIn, router, trades, toast, handleActionError]);
 
-  // Delete trade
   const handleDelete = useCallback(async (id: string) => {
     if (!isSignedIn) {
       router.push('/sign-in?redirect=/trades');
@@ -145,7 +165,7 @@ export function useTrades(initialTrades: Trade[] = []) {
       const result = await deleteTrade(id);
 
       if (result.error) {
-        setTrades(previousTrades); // Rollback on error
+        setTrades(previousTrades);
         handleActionError(result.error);
         return;
       }
@@ -157,7 +177,7 @@ export function useTrades(initialTrades: Trade[] = []) {
 
       router.refresh();
     } catch (error) {
-      setTrades(previousTrades); // Rollback on error
+      setTrades(previousTrades);
       console.error('Error deleting trade:', error);
       setError('Failed to delete trade');
     } finally {
@@ -169,8 +189,11 @@ export function useTrades(initialTrades: Trade[] = []) {
     trades,
     loading,
     error,
+    hasMore,
+    isLoading: isLoadingMore,
     handleCreate,
     handleUpdate,
-    handleDelete
+    handleDelete,
+    loadMore
   };
 }

@@ -6,35 +6,62 @@ import { unstable_cache } from 'next/cache'
 import type { ActionResult } from '@/lib/actions/trades'
 import type { Trade } from '@prisma/client'
 
-export const getTradesForUser = cache(async (): Promise<Trade[]> => {
-    const { userId } = await auth();
+export type PaginatedTrades = {
+  trades: Trade[];
+  nextCursor?: string;
+  totalCount: number;
+}
+
+export const getTradesForUser = cache(async (
+  cursor?: string,
+  limit: number = 10
+): Promise<PaginatedTrades> => {
+  const { userId } = await auth();
   
-    if (!userId) {
-      throw new Error('Unauthorized');
-    }
+  if (!userId) {
+    throw new Error('Unauthorized');
+  }
 
-    return unstable_cache(
-      async () => {
-        try {
-          const trades = await prisma.trade.findMany({
+  return unstable_cache(
+    async () => {
+      try {
+        const [trades, totalCount] = await Promise.all([
+          prisma.trade.findMany({
             where: { userId },
+            take: limit + 1,
+            cursor: cursor ? { id: cursor } : undefined,
             orderBy: { createdAt: 'desc' },
-          });
-          return trades;
-        } catch (error) {
-          console.error('Failed to fetch trades:', error);
-          throw new Error('Failed to fetch trades');
-        }
-      },
-      [`trades-${userId}`], // Ensure this is a string
-      {
-        revalidate: process.env.NODE_ENV === 'development' ? false : 60, // Changed from `0` to `false`
-        tags: [`user-${userId}-trades`],
-      }
-    )();
-  });
+          }),
+          prisma.trade.count({
+            where: { userId }
+          })
+        ]);
 
-// Helper for single trade fetch using existing types
+        let nextCursor: string | undefined = undefined;
+
+        if (trades.length > limit) {
+          const nextItem = trades.pop();
+          nextCursor = nextItem?.id;
+        }
+
+        return {
+          trades,
+          nextCursor,
+          totalCount
+        };
+      } catch (error) {
+        console.error('Failed to fetch trades:', error);
+        throw new Error('Failed to fetch trades');
+      }
+    },
+    [`trades-${userId}-${cursor}-${limit}`],
+    {
+      revalidate: process.env.NODE_ENV === 'development' ? false : 60,
+      tags: [`user-${userId}-trades`],
+    }
+  )();
+});
+
 export async function getTradeById(id: string): Promise<ActionResult<Trade | null>> {
   const { userId } = await auth()
   

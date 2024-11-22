@@ -1,3 +1,4 @@
+// src/components/trades/TradeList.tsx
 'use client'
 
 import type { Trade } from '@prisma/client'
@@ -5,17 +6,18 @@ import { useTrades } from '@/hooks/useTrades'
 import { TradeCard } from '@/components/trades/TradeCard'
 import { AddTradeDialog } from './AddTradeDialog'
 import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+import { Plus, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { TradeFormData } from '@/lib/validations/trade-schemas'
+import type { PaginatedTrades } from '@/lib/server/trades'
 
 interface TradeListProps {
-  initialTrades: Trade[]
+  initialData: PaginatedTrades;
 }
 
-export function TradeList({ initialTrades }: TradeListProps) {
+export function TradeList({ initialData }: TradeListProps) {
   const [showAddDialog, setShowAddDialog] = useState(false)
-  const { trades, handleCreate, handleUpdate, handleDelete } = useTrades(initialTrades)
+  const { trades, hasMore, isLoading, handleCreate, handleUpdate, handleDelete, loadMore } = useTrades(initialData)
 
   if (trades.length === 0) {
     return (
@@ -42,7 +44,10 @@ export function TradeList({ initialTrades }: TradeListProps) {
 
   return (
     <>
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex justify-between items-center">
+        <p className="text-sm text-muted-foreground">
+          Showing {trades.length} of {initialData.totalCount} trades
+        </p>
         <Button
           onClick={() => setShowAddDialog(true)}
           className="bg-green-600 hover:bg-green-700"
@@ -62,6 +67,25 @@ export function TradeList({ initialTrades }: TradeListProps) {
           />
         ))}
       </div>
+
+      {hasMore && (
+        <div className="mt-8 flex justify-center">
+          <Button
+            onClick={() => loadMore()}
+            disabled={isLoading}
+            variant="outline"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              'Load More'
+            )}
+          </Button>
+        </div>
+      )}
 
       <AddTradeDialog
         open={showAddDialog}
