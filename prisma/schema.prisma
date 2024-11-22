@@ -20,8 +20,8 @@ model Trade {
   takeProfit  Float?
   status      String    // "OPEN" or "CLOSED"
   notes       String?
-  strategyName String?  // Changed from 'strategy' to 'strategyName' to be more explicit
-  timeframe   String?   // Made optional
+  strategyName String?
+  timeframe   String?
   pnl         Float?
   exitPrice   Float?
   exitDate    DateTime?

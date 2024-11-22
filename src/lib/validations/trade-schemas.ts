@@ -10,8 +10,7 @@ export const STRATEGIES = [
   "Mean Reversion",
   "Support/Resistance",
   "Scalping",
-  "Momentum",
-  "Other"
+  "Momentum"
 ] as const;
 
 // Schema for validating stop loss based on trade type
@@ -78,7 +77,9 @@ export const tradeBaseSchema = z.object({
     .optional(),
 
   strategyName: z
-    .enum(STRATEGIES)
+    .string()
+    .min(1, "Strategy name is required")
+    .max(50, "Strategy name cannot exceed 50 characters")
     .nullable()
     .optional(),
 
@@ -132,13 +133,9 @@ export const tradeFormSchema = z.object({
   path: ["takeProfit"],
 });
 
-// Export type for form data from schema
 export type TradeFormData = z.infer<typeof tradeFormSchema>;
-
-// Export type for API data
 export type TradeApiData = TradeFormData;
 
-// Type for database trade
 export type TradeResponse = {
   id: string;
   userId: string;
@@ -165,13 +162,11 @@ export type TradeData = TradeFormData & {
   updatedAt: Date;
 };
 
-// Validation error types
 export interface ValidationError {
   path: string[];
   message: string;
 }
 
-// Helper functions
 export function validateTradeForm(data: unknown): TradeFormData {
   return tradeFormSchema.parse(data);
 }

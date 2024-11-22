@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { StrategyCombobox } from "@/components/ui/strategy-combobox";
 import {
   Select,
   SelectContent,
@@ -21,7 +22,6 @@ import {
   STRATEGIES,
   tradeFormSchema
 } from '@/lib/validations/trade-schemas';
-import { cn } from '@/lib/utils';
 
 interface TradeFormProps {
   initialData?: Partial<TradeFormData>;
@@ -88,7 +88,7 @@ export function TradeForm({
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className={cn('space-y-6', className)}
+      className={className}
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
@@ -146,7 +146,7 @@ export function TradeForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
         <div className="space-y-2">
           <label className="text-sm font-medium">Stop Loss</label>
           <Input
@@ -172,7 +172,7 @@ export function TradeForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
         <div className="space-y-2">
           <label className="text-sm font-medium">Status</label>
           <Select
@@ -199,7 +199,7 @@ export function TradeForm({
           <label className="text-sm font-medium">Timeframe</label>
           <Select
             value={watch('timeframe') || ''}
-            onValueChange={(value) => setValue('timeframe', value)}
+            onValueChange={(value) => setValue('timeframe', value as typeof TIMEFRAMES[number])}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select timeframe" />
@@ -216,21 +216,15 @@ export function TradeForm({
 
         <div className="space-y-2">
           <label className="text-sm font-medium">Strategy</label>
-          <Select
+          <StrategyCombobox
             value={watch('strategyName') || ''}
-            onValueChange={(value) => setValue('strategyName', value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select strategy" />
-            </SelectTrigger>
-            <SelectContent>
-              {STRATEGIES.map((strategy) => (
-                <SelectItem key={strategy} value={strategy}>
-                  {strategy}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onChange={(value) => setValue('strategyName', value)}
+            strategies={STRATEGIES}
+            placeholder="Select or enter strategy..."
+          />
+          {errors.strategyName && (
+            <p className="text-sm text-red-500">{errors.strategyName.message}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -248,7 +242,7 @@ export function TradeForm({
       </div>
 
       {tradeStatus === 'CLOSED' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Exit Price</label>
             <Input
@@ -283,10 +277,6 @@ export function TradeForm({
         <Button
           type="submit"
           disabled={isSubmitting}
-          className={cn(
-            "min-w-[120px]",
-            initialData ? "bg-blue-600 hover:bg-blue-700" : "bg-green-600 hover:bg-green-700"
-          )}
         >
           {isSubmitting ? (
             <>
