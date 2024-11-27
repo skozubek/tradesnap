@@ -1,14 +1,16 @@
-// src/components/trades/TradeList.tsx
+// src/components/trades/TradeCard.tsx
 'use client'
 
-import { useState } from 'react'
-import { useRouter, useSearchParams, usePathname } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { TradeCard } from '@/components/trades/TradeCard'
+import { FilterBar } from '@/components/trades/FilterBar'
 import { AddTradeDialog } from './AddTradeDialog'
 import { Button } from '@/components/ui/button'
 import { Plus, Loader2 } from 'lucide-react'
 import { createTrade, updateTrade, deleteTrade, getTrades } from '@/lib/actions/trades'
 import { useToast } from '@/hooks/use-toast'
+import { useTradeFilters } from '@/hooks/use-trade-filters'
 import type { Trade, TradeFormData } from '@/types'
 
 interface TradeListProps {
@@ -21,18 +23,25 @@ interface TradeListProps {
 export function TradeList({
   initialTrades,
   nextCursor: initialNextCursor,
-  totalCount,
+  totalCount: initialTotalCount,
   userId
 }: TradeListProps) {
   const [trades, setTrades] = useState<Trade[]>(initialTrades)
   const [nextCursor, setNextCursor] = useState(initialNextCursor)
+  const [totalCount, setTotalCount] = useState(initialTotalCount)
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
 
   const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
   const { toast } = useToast()
+  const { filters } = useTradeFilters()
+
+  // Update state when new props are received
+  useEffect(() => {
+    setTrades(initialTrades)
+    setNextCursor(initialNextCursor)
+    setTotalCount(initialTotalCount)
+  }, [initialTrades, initialNextCursor, initialTotalCount])
 
   // Show Load More button if we haven't loaded all trades yet
   const showLoadMore = trades.length < totalCount && nextCursor !== null
@@ -44,21 +53,13 @@ export function TradeList({
     try {
       const result = await getTrades(userId, {
         cursor: nextCursor,
-        limit: 10
+        limit: 10,
+        filters
       })
 
       setTrades(currentTrades => [...currentTrades, ...result.trades])
       setNextCursor(result.nextCursor)
-
-      // Update URL only if we have more trades to load
-      if (result.nextCursor) {
-        const params = new URLSearchParams(searchParams)
-        params.set('cursor', nextCursor)
-        router.push(`${pathname}?${params.toString()}`, { scroll: false })
-      } else {
-        // Remove cursor from URL when we've loaded all trades
-        router.push(pathname, { scroll: false })
-      }
+      setTotalCount(result.totalCount)
     } catch (error) {
       toast({
         variant: "destructive",
@@ -133,26 +134,31 @@ export function TradeList({
 
   if (!trades?.length) {
     return (
-      <div className="flex flex-col items-center justify-center p-8 bg-card text-card-foreground rounded-lg border">
-        <p className="text-muted-foreground mb-4">No trades found</p>
-        <Button
-          onClick={() => setShowAddDialog(true)}
-          className="bg-primary hover:bg-primary/90"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Your First Trade
-        </Button>
-        <AddTradeDialog
-          open={showAddDialog}
-          onOpenChange={setShowAddDialog}
-          onSubmit={handleCreate}
-        />
+      <div className="space-y-4">
+        <FilterBar />
+        <div className="flex flex-col items-center justify-center p-8 bg-card text-card-foreground rounded-lg border">
+          <p className="text-muted-foreground mb-4">No trades found</p>
+          <Button
+            onClick={() => setShowAddDialog(true)}
+            className="bg-primary hover:bg-primary/90"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Your First Trade
+          </Button>
+          <AddTradeDialog
+            open={showAddDialog}
+            onOpenChange={setShowAddDialog}
+            onSubmit={handleCreate}
+          />
+        </div>
       </div>
     )
   }
 
   return (
-    <>
+    <div className="space-y-6">
+      <FilterBar />
+
       <div className="mb-4 flex justify-between items-center">
         <p className="text-sm text-muted-foreground">
           Showing {trades.length} of {totalCount} trades
@@ -202,6 +208,6 @@ export function TradeList({
         onOpenChange={setShowAddDialog}
         onSubmit={handleCreate}
       />
-    </>
+    </div>
   )
 }

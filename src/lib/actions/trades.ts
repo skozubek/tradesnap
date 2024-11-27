@@ -1,13 +1,23 @@
 // src/lib/actions/trades.ts
+// src/lib/actions/trades.ts
 'use server'
 
 import { revalidatePath } from 'next/cache'
 import { auth } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
 import { validateTradeForm, type TradeFormData } from '@/lib/validations/trade'
+import type { TradeFilters } from '@/types'
+import type { Prisma } from '@prisma/client'
 
-export async function getTrades(userId: string, options: { limit?: number; cursor?: string } = {}) {
-  const { limit = 10, cursor } = options
+export async function getTrades(
+  userId: string,
+  options: {
+    limit?: number
+    cursor?: string
+    filters?: TradeFilters
+  } = {}
+) {
+  const { limit = 10, cursor, filters } = options
 
   if (!userId) {
     return {
@@ -18,21 +28,65 @@ export async function getTrades(userId: string, options: { limit?: number; curso
   }
 
   try {
-    const totalCount = await prisma.trade.count({
-      where: { userId }
-    })
-
-    const trades = await prisma.trade.findMany({
-      where: {
-        userId,
-        ...(cursor ? {
-          createdAt: {
-            lt: new Date(cursor)
+    // Build the where clause based on filters
+    const where: Prisma.TradeWhereInput = {
+      userId,
+      ...(cursor
+        ? {
+            createdAt: {
+              lt: new Date(cursor)
+            }
           }
-        } : {})
-      },
+        : {}),
+      ...(filters?.status ? { status: filters.status } : {}),
+      ...(filters?.type ? { type: filters.type } : {}),
+      ...(filters?.strategy
+        ? {
+            strategyName: {
+              contains: filters.strategy,
+              mode: 'insensitive' as Prisma.QueryMode
+            }
+          }
+        : {}),
+      ...(filters?.timeframe ? { timeframe: filters.timeframe } : {}),
+      ...(filters?.symbol
+        ? {
+            symbol: {
+              contains: filters.symbol.toUpperCase(),
+              mode: 'insensitive' as Prisma.QueryMode
+            }
+          }
+        : {}),
+      ...(filters?.dateFrom || filters?.dateTo
+        ? {
+            createdAt: {
+              ...(filters.dateFrom ? { gte: new Date(filters.dateFrom) } : {}),
+              ...(filters.dateTo ? { lte: new Date(filters.dateTo) } : {})
+            }
+          }
+        : {}),
+      ...(filters?.profitability
+        ? {
+            AND: [
+              { status: 'CLOSED' },
+              {
+                pnl: {
+                  [filters.profitability === 'win' ? 'gt' : 'lt']: 0
+                }
+              }
+            ]
+          }
+        : {})
+    }
+
+    // Count total trades with filters applied
+    const totalCount = await prisma.trade.count({ where })
+
+    // Get trades with filters and pagination
+    const trades = await prisma.trade.findMany({
+      where,
       orderBy: { createdAt: 'desc' },
-      take: limit + 1,
+      take: limit + 1
     })
 
     const hasMore = trades.length > limit
@@ -49,33 +103,6 @@ export async function getTrades(userId: string, options: { limit?: number; curso
   } catch (error) {
     console.error('Failed to fetch trades:', error)
     throw new Error('Failed to fetch trades')
-  }
-}
-
-export async function createTrade(formData: TradeFormData) {
-  const { userId } = await auth()
-  if (!userId) {
-    throw new Error('Unauthorized')
-  }
-
-  try {
-    const validatedData = validateTradeForm(formData)
-
-    const trade = await prisma.trade.create({
-      data: {
-        userId,
-        ...validatedData,
-        exitDate: validatedData.exitDate ? new Date(validatedData.exitDate) : null,
-      },
-    })
-
-    revalidatePath('/trades')
-    return trade
-  } catch (error) {
-    if (error instanceof Error) {
-      throw error
-    }
-    throw new Error('Failed to create trade')
   }
 }
 

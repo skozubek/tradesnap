@@ -1,3 +1,4 @@
+// src/components/trades/TradeForm.tsx
 'use client'
 
 import { useForm } from 'react-hook-form'

@@ -4,6 +4,7 @@ import { auth } from '@clerk/nextjs/server'
 import { getTrades } from '@/lib/actions/trades'
 import { TradeList } from '@/components/trades/TradeList'
 import { TradesLoading } from '@/components/trades/TradesLoading'
+import type { TradeFilters } from '@/types'
 
 export const metadata = {
   title: 'Your Trades - TradeSnap',
@@ -24,13 +25,36 @@ async function TradesPage({ searchParams }: PageProps) {
   }
 
   try {
-    const params = await searchParams; // Ensure searchParams is awaited
-    const cursorParam = params?.cursor; // Access properties after awaiting
+    const params = await searchParams
+
+    // Extract filters from URL params
+    const filters: TradeFilters = {
+      status: typeof params.status === 'string' ? params.status as TradeFilters['status'] : undefined,
+      type: typeof params.type === 'string' ? params.type as TradeFilters['type'] : undefined,
+      strategy: typeof params.strategy === 'string' ? params.strategy : undefined,
+      timeframe: typeof params.timeframe === 'string' ? params.timeframe as TradeFilters['timeframe'] : undefined,
+      symbol: typeof params.symbol === 'string' ? params.symbol : undefined,
+      dateFrom: typeof params.dateFrom === 'string' ? params.dateFrom : undefined,
+      dateTo: typeof params.dateTo === 'string' ? params.dateTo : undefined,
+      profitability: typeof params.profitability === 'string'
+        ? params.profitability as TradeFilters['profitability']
+        : undefined
+    }
+
+    // Clean up undefined values
+    Object.keys(filters).forEach(key => {
+      if (filters[key as keyof TradeFilters] === undefined) {
+        delete filters[key as keyof TradeFilters]
+      }
+    })
+
+    const cursorParam = params?.cursor
     const cursor = typeof cursorParam === 'string' ? cursorParam : undefined
 
     const { trades, nextCursor, totalCount } = await getTrades(userId, {
       limit: TRADES_PER_PAGE,
-      cursor
+      cursor,
+      filters: Object.keys(filters).length > 0 ? filters : undefined
     })
 
     return (

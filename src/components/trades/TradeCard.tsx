@@ -1,3 +1,4 @@
+// src/components/trades/TradeCard.tsx
 'use client'
 
 import { useState } from 'react'

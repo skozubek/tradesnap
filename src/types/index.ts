@@ -39,3 +39,14 @@ export const tradeSchema = z.object({
 
 export type TradeFormData = z.infer<typeof tradeSchema>
 export type Trade = PrismaTrade
+
+export type TradeFilters = {
+  status?: typeof TRADE_CONSTANTS.STATUS[number]
+  type?: typeof TRADE_CONSTANTS.TYPE[number]
+  strategy?: string
+  timeframe?: typeof TRADE_CONSTANTS.TIMEFRAME[number]
+  symbol?: string
+  dateFrom?: string
+  dateTo?: string
+  profitability?: 'win' | 'loss'
+}
