@@ -4,23 +4,9 @@
 import { revalidatePath } from 'next/cache'
 import { auth } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
-import { tradeSchema, type TradeFormData, type Trade } from '@/types'
+import { validateTradeForm, type TradeFormData } from '@/lib/validations/trade'
 
-interface GetTradesOptions {
-  limit?: number
-  cursor?: string
-}
-
-interface GetTradesResult {
-  trades: Trade[]
-  nextCursor: string | null
-  totalCount: number
-}
-
-export async function getTrades(
-  userId: string,
-  options: GetTradesOptions = {}
-): Promise<GetTradesResult> {
+export async function getTrades(userId: string, options: { limit?: number; cursor?: string } = {}) {
   const { limit = 10, cursor } = options
 
   if (!userId) {
@@ -32,13 +18,10 @@ export async function getTrades(
   }
 
   try {
-    // Get total count of all trades
     const totalCount = await prisma.trade.count({
       where: { userId }
     })
 
-    // If cursor is provided, get trades created before the cursor
-    // If no cursor, get the most recent trades
     const trades = await prisma.trade.findMany({
       where: {
         userId,
@@ -52,11 +35,8 @@ export async function getTrades(
       take: limit + 1,
     })
 
-    // Check if there are more trades
     const hasMore = trades.length > limit
     const paginatedTrades = hasMore ? trades.slice(0, -1) : trades
-
-    // Only set nextCursor if there are more trades and we have trades in current page
     const nextCursor = hasMore && paginatedTrades.length > 0
       ? paginatedTrades[paginatedTrades.length - 1].createdAt.toISOString()
       : null
@@ -72,15 +52,15 @@ export async function getTrades(
   }
 }
 
-export async function createTrade(formData: TradeFormData): Promise<Trade> {
+export async function createTrade(formData: TradeFormData) {
   const { userId } = await auth()
   if (!userId) {
     throw new Error('Unauthorized')
   }
 
-  const validatedData = tradeSchema.parse(formData)
-
   try {
+    const validatedData = validateTradeForm(formData)
+
     const trade = await prisma.trade.create({
       data: {
         userId,
@@ -92,18 +72,20 @@ export async function createTrade(formData: TradeFormData): Promise<Trade> {
     revalidatePath('/trades')
     return trade
   } catch (error) {
-    console.error('Failed to create trade:', error)
+    if (error instanceof Error) {
+      throw error
+    }
     throw new Error('Failed to create trade')
   }
 }
 
-export async function updateTrade(id: string, formData: TradeFormData): Promise<Trade> {
+export async function updateTrade(id: string, formData: TradeFormData) {
   const { userId } = await auth()
   if (!userId) {
     throw new Error('Unauthorized')
   }
 
-  const validatedData = tradeSchema.parse(formData)
+  const validatedData = validateTradeForm(formData)
 
   const existingTrade = await prisma.trade.findUnique({
     where: { id },
@@ -130,12 +112,14 @@ export async function updateTrade(id: string, formData: TradeFormData): Promise<
     revalidatePath('/trades')
     return trade
   } catch (error) {
-    console.error('Failed to update trade:', error)
+    if (error instanceof Error) {
+      throw error
+    }
     throw new Error('Failed to update trade')
   }
 }
 
-export async function deleteTrade(id: string): Promise<void> {
+export async function deleteTrade(id: string) {
   const { userId } = await auth()
   if (!userId) {
     throw new Error('Unauthorized')

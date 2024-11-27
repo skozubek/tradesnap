@@ -32,6 +32,7 @@ export const tradeSchema = z.object({
   notes: z.string().max(500).nullable().optional(),
   strategyName: z.enum(TRADE_CONSTANTS.STRATEGY).nullable().optional(),
   timeframe: z.enum(TRADE_CONSTANTS.TIMEFRAME).nullable().optional(),
+  pnl: z.number().nullable().optional(),
   exitPrice: z.number().positive().nullable().optional(),
   exitDate: z.string().nullable().optional()
 })
