@@ -1,4 +1,3 @@
-// src/components/trades/TradeCard.tsx
 'use client'
 
 import { useState } from 'react'
@@ -94,6 +93,18 @@ export function TradeCard({ trade, onUpdate, onDelete }: TradeCardProps) {
               {trade.status}
             </span>
           </p>
+          {trade.status === 'CLOSED' && trade.pnl !== null && (
+            <p className="text-sm">
+              <span className="text-muted-foreground">PNL:</span>{' '}
+              <span className={`font-medium ${
+                Number(trade.pnl) >= 0
+                  ? 'text-green-600 dark:text-green-400'
+                  : 'text-red-600 dark:text-red-400'
+              }`}>
+                ${formatPrice(trade.pnl)}
+              </span>
+            </p>
+          )}
         </div>
 
         <Button
