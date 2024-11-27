@@ -10,28 +10,54 @@ export const metadata = {
   description: 'View and manage your trading history'
 }
 
-async function TradesContent() {
+const TRADES_PER_PAGE = 10
+
+interface PageProps {
+  searchParams: { [key: string]: string | string[] | undefined }
+}
+
+async function TradesPage({ searchParams }: PageProps) {
   const { userId } = await auth()
 
   if (!userId) {
     return <div>Please sign in to view your trades</div>
   }
 
-  const trades = await getTrades(userId)
-  return <TradeList initialTrades={trades} />
+  try {
+    const params = await searchParams; // Ensure searchParams is awaited
+    const cursorParam = params?.cursor; // Access properties after awaiting
+    const cursor = typeof cursorParam === 'string' ? cursorParam : undefined
+
+    const { trades, nextCursor, totalCount } = await getTrades(userId, {
+      limit: TRADES_PER_PAGE,
+      cursor
+    })
+
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-3xl font-bold text-foreground">Your Trades</h1>
+          </div>
+          <Suspense fallback={<TradesLoading />}>
+            <TradeList
+              initialTrades={trades}
+              nextCursor={nextCursor}
+              totalCount={totalCount}
+              userId={userId}
+            />
+          </Suspense>
+        </div>
+      </div>
+    )
+  } catch (error) {
+    console.error('Error fetching trades:', error)
+    return (
+      <div className="p-4 text-red-500">
+        Failed to load trades. Please try again later.
+      </div>
+    )
+  }
 }
 
-export default function TradesPage() {
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-foreground">Your Trades</h1>
-        </div>
-        <Suspense fallback={<TradesLoading />}>
-          <TradesContent />
-        </Suspense>
-      </div>
-    </div>
-  )
-}
+export default TradesPage

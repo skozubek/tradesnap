@@ -2,24 +2,74 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { TradeCard } from '@/components/trades/TradeCard'
 import { AddTradeDialog } from './AddTradeDialog'
 import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
-import { createTrade, updateTrade, deleteTrade } from '@/lib/actions/trades'
+import { Plus, Loader2 } from 'lucide-react'
+import { createTrade, updateTrade, deleteTrade, getTrades } from '@/lib/actions/trades'
 import { useToast } from '@/hooks/use-toast'
 import type { Trade, TradeFormData } from '@/types'
 
 interface TradeListProps {
   initialTrades: Trade[]
+  nextCursor: string | null
+  totalCount: number
+  userId: string
 }
 
-export function TradeList({ initialTrades }: TradeListProps) {
+export function TradeList({
+  initialTrades,
+  nextCursor: initialNextCursor,
+  totalCount,
+  userId
+}: TradeListProps) {
   const [trades, setTrades] = useState<Trade[]>(initialTrades)
+  const [nextCursor, setNextCursor] = useState(initialNextCursor)
   const [showAddDialog, setShowAddDialog] = useState(false)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
+
+  // Show Load More button if we haven't loaded all trades yet
+  const showLoadMore = trades.length < totalCount && nextCursor !== null
+
+  const handleLoadMore = async () => {
+    if (!userId || !nextCursor || isLoadingMore) return
+
+    setIsLoadingMore(true)
+    try {
+      const result = await getTrades(userId, {
+        cursor: nextCursor,
+        limit: 10
+      })
+
+      setTrades(currentTrades => [...currentTrades, ...result.trades])
+      setNextCursor(result.nextCursor)
+
+      // Update URL only if we have more trades to load
+      if (result.nextCursor) {
+        const params = new URLSearchParams(searchParams)
+        params.set('cursor', nextCursor)
+        router.push(`${pathname}?${params.toString()}`, { scroll: false })
+      } else {
+        // Remove cursor from URL when we've loaded all trades
+        router.push(pathname, { scroll: false })
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load more trades. Please try again."
+      })
+      console.error('Load more error:', error)
+    } finally {
+      setIsLoadingMore(false)
+    }
+  }
 
   const handleCreate = async (data: TradeFormData) => {
     try {
@@ -105,7 +155,7 @@ export function TradeList({ initialTrades }: TradeListProps) {
     <>
       <div className="mb-4 flex justify-between items-center">
         <p className="text-sm text-muted-foreground">
-          Showing {trades.length} trades
+          Showing {trades.length} of {totalCount} trades
         </p>
         <Button
           onClick={() => setShowAddDialog(true)}
@@ -126,6 +176,26 @@ export function TradeList({ initialTrades }: TradeListProps) {
           />
         ))}
       </div>
+
+      {showLoadMore && (
+        <div className="mt-8 flex justify-center">
+          <Button
+            variant="outline"
+            disabled={isLoadingMore}
+            onClick={handleLoadMore}
+            className="min-w-[120px]"
+          >
+            {isLoadingMore ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              'Load More'
+            )}
+          </Button>
+        </div>
+      )}
 
       <AddTradeDialog
         open={showAddDialog}
