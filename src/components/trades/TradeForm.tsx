@@ -1,34 +1,30 @@
-// src/components/trades/TradeForm.tsx
-'use client';
+//src/components/trades/TradeForm.tsx
+'use client'
 
-import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { StrategyCombobox } from "@/components/ui/strategy-combobox";
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { StrategyCombobox } from "@/components/ui/strategy-combobox"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/components/ui/select'
 import {
   type TradeFormData,
-  TRADE_TYPES,
-  TRADE_STATUS,
-  TIMEFRAMES,
-  STRATEGIES,
-  tradeFormSchema
-} from '@/lib/validations/trade-schemas';
+  TRADE_CONSTANTS,
+  tradeSchema
+} from '@/types'
 
 interface TradeFormProps {
-  initialData?: Partial<TradeFormData>;
-  isSubmitting?: boolean;
-  onSubmit: (data: TradeFormData) => Promise<void>;
-  onCancel: () => void;
-  className?: string;
+  initialData?: Partial<TradeFormData>
+  isSubmitting?: boolean
+  onSubmit: (data: TradeFormData) => Promise<void>
+  onCancel: () => void
+  className?: string
 }
 
 export function TradeForm({
@@ -36,10 +32,17 @@ export function TradeForm({
   isSubmitting = false,
   onSubmit,
   onCancel,
-  className
+  className = ''
 }: TradeFormProps) {
-  const form = useForm<TradeFormData>({
-    resolver: zodResolver(tradeFormSchema),
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    watch,
+    setValue,
+    trigger
+  } = useForm<TradeFormData>({
+    resolver: zodResolver(tradeSchema),
     defaultValues: {
       symbol: '',
       type: 'BUY',
@@ -55,40 +58,29 @@ export function TradeForm({
       exitDate: null,
       ...initialData,
     },
-  });
+  })
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    watch,
-    setValue,
-    reset
-  } = form;
+  const tradeStatus = watch('status')
+  const tradeType = watch('type')
+  const price = watch('price')
 
-  useEffect(() => {
-    if (initialData) {
-      reset(initialData);
+  const handleStatusChange = (value: typeof TRADE_CONSTANTS.STATUS[number]) => {
+    setValue('status', value)
+    if (value === 'CLOSED') {
+      setValue('exitPrice', price)
+      setValue('exitDate', new Date().toISOString().slice(0, 16))
+    } else {
+      setValue('exitPrice', null)
+      setValue('exitDate', null)
     }
-  }, [initialData, reset]);
-
-  const handleStopLossChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setValue('stopLoss', value === '' ? null : Number(value));
-  };
-
-  const handleTakeProfitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setValue('takeProfit', value === '' ? null : Number(value));
-  };
-
-  const tradeStatus = watch('status');
-  const tradeType = watch('type');
+    trigger(['exitPrice', 'exitDate'])
+  }
 
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
       className={className}
+      noValidate
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
@@ -105,22 +97,19 @@ export function TradeForm({
           <label className="text-sm font-medium">Direction</label>
           <Select
             value={tradeType}
-            onValueChange={(value) => setValue('type', value as typeof TRADE_TYPES[number])}
+            onValueChange={(value) => setValue('type', value as typeof TRADE_CONSTANTS.TYPE[number])}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select direction" />
             </SelectTrigger>
             <SelectContent>
-              {TRADE_TYPES.map((type) => (
+              {TRADE_CONSTANTS.TYPE.map((type) => (
                 <SelectItem key={type} value={type}>
                   {type}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          {errors.type && (
-            <p className="text-sm text-red-500">{errors.type.message}</p>
-          )}
         </div>
 
         <div className="space-y-2">
@@ -128,7 +117,8 @@ export function TradeForm({
           <Input
             {...register('price', { valueAsNumber: true })}
             type="number"
-            step="0.1"
+            step="any"
+            min="0"
             placeholder="0.00"
             error={errors.price?.message}
           />
@@ -139,7 +129,8 @@ export function TradeForm({
           <Input
             {...register('amount', { valueAsNumber: true })}
             type="number"
-            step="0.1"
+            step="any"
+            min="0"
             placeholder="0.00"
             error={errors.amount?.message}
           />
@@ -150,11 +141,10 @@ export function TradeForm({
         <div className="space-y-2">
           <label className="text-sm font-medium">Stop Loss</label>
           <Input
+            {...register('stopLoss', { valueAsNumber: true })}
             type="number"
-            step="0.1"
+            step="any"
             placeholder={tradeType === 'BUY' ? 'Below entry' : 'Above entry'}
-            defaultValue={watch('stopLoss') || ''}
-            onChange={handleStopLossChange}
             error={errors.stopLoss?.message}
           />
         </div>
@@ -162,11 +152,10 @@ export function TradeForm({
         <div className="space-y-2">
           <label className="text-sm font-medium">Take Profit</label>
           <Input
+            {...register('takeProfit', { valueAsNumber: true })}
             type="number"
-            step="0.1"
+            step="any"
             placeholder={tradeType === 'BUY' ? 'Above entry' : 'Below entry'}
-            defaultValue={watch('takeProfit') || ''}
-            onChange={handleTakeProfitChange}
             error={errors.takeProfit?.message}
           />
         </div>
@@ -177,37 +166,15 @@ export function TradeForm({
           <label className="text-sm font-medium">Status</label>
           <Select
             value={tradeStatus}
-            onValueChange={(value) => setValue('status', value as typeof TRADE_STATUS[number])}
+            onValueChange={handleStatusChange}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select status" />
             </SelectTrigger>
             <SelectContent>
-              {TRADE_STATUS.map((status) => (
+              {TRADE_CONSTANTS.STATUS.map((status) => (
                 <SelectItem key={status} value={status}>
                   {status}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {errors.status && (
-            <p className="text-sm text-red-500">{errors.status.message}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Timeframe</label>
-          <Select
-            value={watch('timeframe') || ''}
-            onValueChange={(value) => setValue('timeframe', value as typeof TIMEFRAMES[number])}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select timeframe" />
-            </SelectTrigger>
-            <SelectContent>
-              {TIMEFRAMES.map((tf) => (
-                <SelectItem key={tf} value={tf}>
-                  {tf}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -219,12 +186,28 @@ export function TradeForm({
           <StrategyCombobox
             value={watch('strategyName') || ''}
             onChange={(value) => setValue('strategyName', value)}
-            strategies={STRATEGIES}
-            placeholder="Select or enter strategy..."
+            strategies={TRADE_CONSTANTS.STRATEGY}
+            placeholder="Select strategy..."
           />
-          {errors.strategyName && (
-            <p className="text-sm text-red-500">{errors.strategyName.message}</p>
-          )}
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Timeframe</label>
+          <Select
+            value={watch('timeframe') || ''}
+            onValueChange={(value) => setValue('timeframe', value as typeof TRADE_CONSTANTS.TIMEFRAME[number])}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select timeframe" />
+            </SelectTrigger>
+            <SelectContent>
+              {TRADE_CONSTANTS.TIMEFRAME.map((tf) => (
+                <SelectItem key={tf} value={tf}>
+                  {tf}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="space-y-2">
@@ -235,9 +218,6 @@ export function TradeForm({
             rows={3}
             placeholder="Add trade notes..."
           />
-          {errors.notes && (
-            <p className="text-sm text-red-500">{errors.notes.message}</p>
-          )}
         </div>
       </div>
 
@@ -248,7 +228,8 @@ export function TradeForm({
             <Input
               {...register('exitPrice', { valueAsNumber: true })}
               type="number"
-              step="0.1"
+              step="any"
+              min="0"
               placeholder="0.00"
               error={errors.exitPrice?.message}
             />
@@ -278,18 +259,9 @@ export function TradeForm({
           type="submit"
           disabled={isSubmitting}
         >
-          {isSubmitting ? (
-            <>
-              <span className="animate-spin mr-2">●</span>
-              {initialData ? "Updating..." : "Creating..."}
-            </>
-          ) : (
-            initialData ? "Update Trade" : "Create Trade"
-          )}
+          {isSubmitting ? 'Saving...' : initialData ? 'Update Trade' : 'Create Trade'}
         </Button>
       </div>
     </form>
-  );
+  )
 }
-
-export default TradeForm;

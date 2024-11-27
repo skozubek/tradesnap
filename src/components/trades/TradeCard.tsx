@@ -1,11 +1,11 @@
-'use client';
+// src/components/trades/TradeCard.tsx
+'use client'
 
-import { useState } from 'react';
-import { format } from 'date-fns';
-import { Trash2 } from 'lucide-react';
-import type { Trade } from '@prisma/client';
-import type { TradeFormData } from '@/lib/validations/trade-schemas';
-import { Button } from '@/components/ui/button';
+import { useState } from 'react'
+import { format } from 'date-fns'
+import { Trash2 } from 'lucide-react'
+import type { Trade, TradeFormData } from '@/types'
+import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,44 +15,37 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { EditTradeDialog } from './EditTradeDialog';
+} from "@/components/ui/alert-dialog"
+import { EditTradeDialog } from './EditTradeDialog'
 
 interface TradeCardProps {
-  trade: Trade;
-  onUpdate: (id: string, data: TradeFormData) => Promise<void>;
-  onDelete: (id: string) => Promise<void>;
+  trade: Trade
+  onUpdate: (id: string, data: TradeFormData) => Promise<void>
+  onDelete: (id: string) => Promise<void>
 }
 
 export function TradeCard({ trade, onUpdate, onDelete }: TradeCardProps) {
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showEditDialog, setShowEditDialog] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'decimal',
       minimumFractionDigits: 2,
       maximumFractionDigits: 8
-    }).format(price);
-  };
+    }).format(price)
+  }
 
   const handleDelete = async () => {
+    setIsDeleting(true)
     try {
-      await onDelete(trade.id);
-      setShowDeleteDialog(false);
-    } catch (error) {
-      console.error('Error deleting trade:', error);
+      await onDelete(trade.id)
+      setShowDeleteDialog(false)
+    } finally {
+      setIsDeleting(false)
     }
-  };
-
-  const handleUpdate = async (data: TradeFormData) => {
-    try {
-      await onUpdate(trade.id, data);
-      setShowEditDialog(false);
-    } catch (error) {
-      console.error('Error updating trade:', error);
-    }
-  };
+  }
 
   return (
     <>
@@ -107,8 +100,8 @@ export function TradeCard({ trade, onUpdate, onDelete }: TradeCardProps) {
           variant="ghost"
           size="sm"
           onClick={(e) => {
-            e.stopPropagation();
-            setShowDeleteDialog(true);
+            e.stopPropagation()
+            setShowDeleteDialog(true)
           }}
           className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
         >
@@ -116,15 +109,13 @@ export function TradeCard({ trade, onUpdate, onDelete }: TradeCardProps) {
         </Button>
       </div>
 
-      {/* Edit Dialog */}
       <EditTradeDialog
         trade={trade}
         open={showEditDialog}
         onOpenChange={setShowEditDialog}
-        onSubmit={handleUpdate}
+        onSubmit={(data) => onUpdate(trade.id, data)}
       />
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -134,16 +125,17 @@ export function TradeCard({ trade, onUpdate, onDelete }: TradeCardProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               className="bg-red-500 hover:bg-red-600"
+              disabled={isDeleting}
             >
-              Delete
+              {isDeleting ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </>
-  );
+  )
 }

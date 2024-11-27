@@ -1,13 +1,19 @@
 // src/components/SentimentAnalysis.tsx
-import React from 'react';
+'use client'
 
-const SentimentAnalysis: React.FC = () => {
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+
+export function SentimentAnalysis() {
   return (
-    <div>
-      <h2>Market Sentiment Analysis</h2>
-      {/* TODO: Implement sentiment analysis logic and visualization */}
-    </div>
-  );
-};
-
-export default SentimentAnalysis;
+    <Card>
+      <CardHeader>
+        <CardTitle>Market Sentiment</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground">
+          Sentiment analysis features coming soon...
+        </p>
+      </CardContent>
+    </Card>
+  )
+}

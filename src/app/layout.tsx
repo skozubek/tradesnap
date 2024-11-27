@@ -1,11 +1,9 @@
 // src/app/layout.tsx
-import { ClerkProvider } from '@clerk/nextjs';
+import { ClerkProvider } from '@clerk/nextjs'
 import { Inter } from 'next/font/google'
-import './globals.css'
-import { Providers } from './Providers'
-import DynamicLayout from '@/components/DynamicLayout'
+import { ThemeProvider } from 'next-themes'
 import { Toaster } from "@/components/ui/toaster"
-import { ThemeProvider } from 'next-themes';
+import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -22,14 +20,17 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
-        <Providers>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <ClerkProvider dynamic>
-            <DynamicLayout>{children}</DynamicLayout>
+        <ClerkProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
             <Toaster />
-          </ClerkProvider>
           </ThemeProvider>
-        </Providers>
+        </ClerkProvider>
       </body>
     </html>
   )

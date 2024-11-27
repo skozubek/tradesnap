@@ -1,13 +1,19 @@
 // src/components/StrategyAnalysis.tsx
-import React from 'react';
+'use client'
 
-const StrategyAnalysis: React.FC = () => {
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+
+export function StrategyAnalysis() {
   return (
-    <div>
-      <h2>Strategy Analysis</h2>
-      {/* TODO: Implement strategy analysis logic and visualization */}
-    </div>
-  );
-};
-
-export default StrategyAnalysis;
+    <Card>
+      <CardHeader>
+        <CardTitle>Strategy Performance</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground">
+          Strategy analysis features coming soon...
+        </p>
+      </CardContent>
+    </Card>
+  )
+}
