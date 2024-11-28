@@ -13,26 +13,44 @@ import {
 import { Input } from '@/components/ui/input'
 import { StrategyCombobox } from '@/components/ui/strategy-combobox'
 import { TRADE_CONSTANTS } from '@/types'
+import type { TradeFilters } from '@/types'
 import { useTradeFilters } from '@/hooks/use-trade-filters'
+
+interface FilterOption {
+  key: keyof TradeFilters
+  label: string
+}
 
 export function FilterBar() {
   const { filters, setFilter, removeFilter, clearFilters } = useTradeFilters()
 
-  const activeFilters = Object.entries(filters).filter(([_, value]) => value !== undefined)
+  const activeFilters: FilterOption[] = Object.entries(filters)
+    .filter(([_, filterValue]) => filterValue !== undefined)
+    .map(([filterKey, filterValue]) => {
+      if (filterKey === 'id') {
+        return {
+          key: filterKey as keyof TradeFilters,
+          label: `Selected Trade: ${filterValue?.substring(0, 8)}...`
+        }
+      }
+      return {
+        key: filterKey as keyof TradeFilters,
+        label: `${filterKey}: ${filterValue}`
+      }
+    })
 
-  const handleTypeChange = (value: string) => {
-    console.log('Type filter change:', value)
-    setFilter('type', value === "all" ? undefined : value)
+  const handleFilterChange = (key: keyof TradeFilters, value: string | undefined) => {
+    setFilter(key, value === "all" ? undefined : value)
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" role="search" aria-label="Trade filters">
       <div className="flex flex-wrap gap-4">
         <Select
           value={filters.status ?? "all"}
-          onValueChange={(value) => setFilter('status', value === "all" ? undefined : value)}
+          onValueChange={(value) => handleFilterChange('status', value)}
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[180px]" aria-label="Filter by status">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -47,9 +65,9 @@ export function FilterBar() {
 
         <Select
           value={filters.type ?? "all"}
-          onValueChange={handleTypeChange}
+          onValueChange={(value) => handleFilterChange('type', value)}
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[180px]" aria-label="Filter by trade type">
             <SelectValue placeholder="Direction" />
           </SelectTrigger>
           <SelectContent>
@@ -64,16 +82,16 @@ export function FilterBar() {
 
         <Select
           value={filters.timeframe ?? "all"}
-          onValueChange={(value) => setFilter('timeframe', value === "all" ? undefined : value)}
+          onValueChange={(value) => handleFilterChange('timeframe', value)}
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[180px]" aria-label="Filter by timeframe">
             <SelectValue placeholder="Timeframe" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Timeframes</SelectItem>
-            {TRADE_CONSTANTS.TIMEFRAME.map((tf) => (
-              <SelectItem key={tf} value={tf}>
-                {tf}
+            {TRADE_CONSTANTS.TIMEFRAME.map((timeframe) => (
+              <SelectItem key={timeframe} value={timeframe}>
+                {timeframe}
               </SelectItem>
             ))}
           </SelectContent>
@@ -81,16 +99,16 @@ export function FilterBar() {
 
         <StrategyCombobox
           value={filters.strategy ?? ""}
-          onChange={(value) => setFilter('strategy', value || undefined)}
+          onChange={(value) => handleFilterChange('strategy', value)}
           strategies={TRADE_CONSTANTS.STRATEGY}
           placeholder="Select strategy..."
         />
 
         <Select
           value={filters.profitability ?? "all"}
-          onValueChange={(value) => setFilter('profitability', value === "all" ? undefined : value)}
+          onValueChange={(value) => handleFilterChange('profitability', value)}
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[180px]" aria-label="Filter by profitability">
             <SelectValue placeholder="Profitability" />
           </SelectTrigger>
           <SelectContent>
@@ -103,37 +121,41 @@ export function FilterBar() {
         <Input
           placeholder="Symbol"
           value={filters.symbol ?? ""}
-          onChange={(e) => setFilter('symbol', e.target.value || undefined)}
+          onChange={(e) => handleFilterChange('symbol', e.target.value)}
           className="w-[180px]"
+          aria-label="Filter by symbol"
         />
 
         <Input
           type="date"
           value={filters.dateFrom ?? ""}
-          onChange={(e) => setFilter('dateFrom', e.target.value || undefined)}
+          onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
           className="w-[180px]"
+          aria-label="Filter by start date"
         />
 
         <Input
           type="date"
           value={filters.dateTo ?? ""}
-          onChange={(e) => setFilter('dateTo', e.target.value || undefined)}
+          onChange={(e) => handleFilterChange('dateTo', e.target.value)}
           className="w-[180px]"
+          aria-label="Filter by end date"
         />
       </div>
 
       {activeFilters.length > 0 && (
-        <div className="flex flex-wrap gap-2 items-center">
+        <div className="flex flex-wrap gap-2 items-center" role="region" aria-label="Active filters">
           <span className="text-sm text-muted-foreground">Active filters:</span>
-          {activeFilters.map(([key, value]) => (
+          {activeFilters.map(({ key, label }) => (
             <Button
               key={key}
               variant="secondary"
               size="sm"
-              onClick={() => removeFilter(key as keyof typeof filters)}
+              onClick={() => removeFilter(key)}
               className="h-7 text-xs"
+              aria-label={`Remove filter: ${label}`}
             >
-              {key}: {value}
+              {label}
               <X className="ml-2 h-3 w-3" />
             </Button>
           ))}
@@ -142,6 +164,7 @@ export function FilterBar() {
             size="sm"
             onClick={clearFilters}
             className="h-7 text-xs"
+            aria-label="Clear all filters"
           >
             Clear all
           </Button>

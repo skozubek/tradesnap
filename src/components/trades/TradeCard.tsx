@@ -22,9 +22,10 @@ interface TradeCardProps {
   trade: Trade
   onUpdate: (id: string, data: TradeFormData) => Promise<void>
   onDelete: (id: string) => Promise<void>
+  selectedTradeId?: string
 }
 
-export function TradeCard({ trade, onUpdate, onDelete }: TradeCardProps) {
+export function TradeCard({ trade, onUpdate, onDelete, selectedTradeId }: TradeCardProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -51,7 +52,9 @@ export function TradeCard({ trade, onUpdate, onDelete }: TradeCardProps) {
     <>
       <div
         onClick={() => setShowEditDialog(true)}
-        className="bg-card border rounded-lg p-4 cursor-pointer hover:border-primary transition-colors relative group"
+        className={`bg-card border rounded-lg p-4 pb-6 cursor-pointer hover:border-primary transition-colors relative group ${
+          trade.id === selectedTradeId ? 'ring-2 ring-primary' : ''
+        }`}
       >
         <div className="flex justify-between items-start mb-2">
           <div>
@@ -108,17 +111,19 @@ export function TradeCard({ trade, onUpdate, onDelete }: TradeCardProps) {
           )}
         </div>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation()
-            setShowDeleteDialog(true)
-          }}
-          className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
+        <div className="absolute bottom-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation()
+              setShowDeleteDialog(true)
+            }}
+            className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       <EditTradeDialog

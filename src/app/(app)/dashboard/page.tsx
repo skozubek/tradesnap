@@ -1,15 +1,28 @@
 // src/app/(app)/dashboard/page.tsx
 import { Suspense } from 'react'
 import { getDashboardMetrics } from '@/lib/actions/metrics'
+import { getTrades } from '@/lib/actions/trades'
+import { auth } from '@clerk/nextjs/server'
 import MetricWidget from '@/components/MetricWidget'
 import Calendar from '@/components/Calendar'
+import RecentTrades from '@/components/RecentTrades'
 
-async function Metrics() {
+const RECENT_TRADES_LIMIT = 3
+
+async function DashboardContent() {
   try {
-    const metrics = await getDashboardMetrics()
+    const { userId } = await auth()
+    if (!userId) {
+      throw new Error('Unauthorized')
+    }
+
+    const [metrics, tradesData] = await Promise.all([
+      getDashboardMetrics(),
+      getTrades(userId, { limit: RECENT_TRADES_LIMIT })
+    ])
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <MetricWidget
             title="Total P&L"
@@ -33,20 +46,22 @@ async function Metrics() {
             percentage="Closed trades"
           />
         </div>
+
+        <RecentTrades trades={tradesData.trades} />
         <Calendar tradesByDate={metrics.tradesByDate} />
       </div>
     )
   } catch (error) {
-    console.error('Error fetching metrics:', error)
+    console.error('Error fetching dashboard data:', error)
     return (
       <div className="p-4 text-red-500">
-        Failed to load metrics. Please try again later.
+        Failed to load dashboard. Please try again later.
       </div>
     )
   }
 }
 
-function MetricsLoading() {
+function DashboardLoading() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {[...Array(3)].map((_, i) => (
@@ -66,8 +81,8 @@ export default function DashboardPage() {
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
         </div>
-        <Suspense fallback={<MetricsLoading />}>
-          <Metrics />
+        <Suspense fallback={<DashboardLoading />}>
+          <DashboardContent />
         </Suspense>
       </div>
     </div>

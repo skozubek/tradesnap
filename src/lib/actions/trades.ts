@@ -27,7 +27,7 @@ export async function getTrades(
   }
 
   try {
-    // Build the where clause based on filters
+     // Build the where clause based on filters
     const where: Prisma.TradeWhereInput = {
       userId,
       ...(cursor
@@ -37,21 +37,13 @@ export async function getTrades(
             }
           }
         : {}),
+      ...(filters?.id ? { id: filters.id } : {}),
       ...(filters?.status ? { status: filters.status } : {}),
       ...(filters?.type ? { type: filters.type } : {}),
       ...(filters?.strategy
         ? {
             strategyName: {
               contains: filters.strategy,
-              mode: 'insensitive' as Prisma.QueryMode
-            }
-          }
-        : {}),
-      ...(filters?.timeframe ? { timeframe: filters.timeframe } : {}),
-      ...(filters?.symbol
-        ? {
-            symbol: {
-              contains: filters.symbol.toUpperCase(),
               mode: 'insensitive' as Prisma.QueryMode
             }
           }

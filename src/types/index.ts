@@ -41,6 +41,7 @@ export type TradeFormData = z.infer<typeof tradeSchema>
 export type Trade = PrismaTrade
 
 export type TradeFilters = {
+  id?: string
   status?: typeof TRADE_CONSTANTS.STATUS[number]
   type?: typeof TRADE_CONSTANTS.TYPE[number]
   strategy?: string

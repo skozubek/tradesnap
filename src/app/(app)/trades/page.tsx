@@ -25,7 +25,9 @@ async function TradesPage({ searchParams }: PageProps) {
   }
 
   try {
+
     const params = await searchParams
+    const selectedTradeId = typeof params.selected === 'string' ? params.selected : undefined
 
     // Extract filters from URL params
     const filters: TradeFilters = {
@@ -41,27 +43,38 @@ async function TradesPage({ searchParams }: PageProps) {
         : undefined
     }
 
+    // If we have a selected trade ID, filter for just that trade
+    const tradeFilters = selectedTradeId
+      ? { id: selectedTradeId }
+      : Object.keys(filters).length > 0
+        ? filters
+        : undefined
+
     // Clean up undefined values
-    Object.keys(filters).forEach(key => {
-      if (filters[key as keyof TradeFilters] === undefined) {
-        delete filters[key as keyof TradeFilters]
-      }
-    })
+    if (tradeFilters) {
+      Object.keys(tradeFilters).forEach(key => {
+        if (tradeFilters[key as keyof typeof tradeFilters] === undefined) {
+          delete tradeFilters[key as keyof typeof tradeFilters]
+        }
+      })
+    }
 
     const cursorParam = params?.cursor
     const cursor = typeof cursorParam === 'string' ? cursorParam : undefined
 
     const { trades, nextCursor, totalCount } = await getTrades(userId, {
-      limit: TRADES_PER_PAGE,
+      limit: selectedTradeId ? 1 : TRADES_PER_PAGE,
       cursor,
-      filters: Object.keys(filters).length > 0 ? filters : undefined
+      filters: tradeFilters
     })
 
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold text-foreground">Your Trades</h1>
+            <h1 className="text-3xl font-bold text-foreground">
+              {selectedTradeId ? 'Trade Details' : 'Your Trades'}
+            </h1>
           </div>
           <Suspense fallback={<TradesLoading />}>
             <TradeList
@@ -69,6 +82,7 @@ async function TradesPage({ searchParams }: PageProps) {
               nextCursor={nextCursor}
               totalCount={totalCount}
               userId={userId}
+              selectedTradeId={selectedTradeId}
             />
           </Suspense>
         </div>

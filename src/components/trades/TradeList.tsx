@@ -1,14 +1,14 @@
-// src/components/trades/TradeCard.tsx
+// src/components/trades/TradeList.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { updateTrade, deleteTrade, getTrades } from '@/lib/actions/trades'
 import { TradeCard } from '@/components/trades/TradeCard'
 import { FilterBar } from '@/components/trades/FilterBar'
 import { AddTradeDialog } from './AddTradeDialog'
 import { Button } from '@/components/ui/button'
 import { Plus, Loader2 } from 'lucide-react'
-import { createTrade, updateTrade, deleteTrade, getTrades } from '@/lib/actions/trades'
 import { useToast } from '@/hooks/use-toast'
 import { useTradeFilters } from '@/hooks/use-trade-filters'
 import type { Trade, TradeFormData } from '@/types'
@@ -18,13 +18,15 @@ interface TradeListProps {
   nextCursor: string | null
   totalCount: number
   userId: string
+  selectedTradeId?: string
 }
 
 export function TradeList({
   initialTrades,
   nextCursor: initialNextCursor,
   totalCount: initialTotalCount,
-  userId
+  userId,
+  selectedTradeId
 }: TradeListProps) {
   const [trades, setTrades] = useState<Trade[]>(initialTrades)
   const [nextCursor, setNextCursor] = useState(initialNextCursor)
@@ -69,26 +71,6 @@ export function TradeList({
       console.error('Load more error:', error)
     } finally {
       setIsLoadingMore(false)
-    }
-  }
-
-  const handleCreate = async (data: TradeFormData) => {
-    try {
-      const newTrade = await createTrade(data)
-      setTrades(current => [newTrade, ...current])
-      setShowAddDialog(false)
-      toast({
-        title: "Success",
-        description: "Trade created successfully",
-      })
-      router.refresh()
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error instanceof Error ? error.message : 'Failed to create trade',
-      })
-      throw error
     }
   }
 
@@ -148,7 +130,10 @@ export function TradeList({
           <AddTradeDialog
             open={showAddDialog}
             onOpenChange={setShowAddDialog}
-            onSubmit={handleCreate}
+            onSubmit={async () => {
+              setShowAddDialog(false)
+              router.refresh()
+            }}
           />
         </div>
       </div>
@@ -179,6 +164,7 @@ export function TradeList({
             trade={trade}
             onUpdate={handleUpdate}
             onDelete={handleDelete}
+            selectedTradeId={selectedTradeId}
           />
         ))}
       </div>
@@ -206,7 +192,10 @@ export function TradeList({
       <AddTradeDialog
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
-        onSubmit={handleCreate}
+        onSubmit={async () => {
+          setShowAddDialog(false)
+          router.refresh()
+        }}
       />
     </div>
   )
