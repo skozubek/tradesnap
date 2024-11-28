@@ -1,28 +1,42 @@
-// File: src/components/Calendar.tsx
+// src/components/Calendar.tsx
 'use client'
 
-import { useState } from 'react';
-import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday } from 'date-fns';
-import { Button } from '@/components/ui/button';
+import { useState } from 'react'
+import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  isSameMonth,
+  isToday,
+  startOfWeek,
+  endOfWeek
+} from 'date-fns'
+import { Button } from '@/components/ui/button'
 
-// Mock data for winning and losing days
-const tradeResults = {
-  '2023-05-01': { result: 'win', amount: 100 },
-  '2023-05-03': { result: 'loss', amount: -50 },
-  '2023-05-07': { result: 'win', amount: 200 },
-  '2023-05-10': { result: 'loss', amount: -75 },
-  '2023-05-15': { result: 'win', amount: 150 },
-  '2023-05-20': { result: 'loss', amount: -100 },
+interface TradeDay {
+  pnl: number
+  trades: number
 }
 
-export default function CalendarComponent() {
+interface CalendarProps {
+  tradesByDate: Record<string, TradeDay>
+}
+
+export default function Calendar({ tradesByDate }: CalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date())
 
-  const days = eachDayOfInterval({
-    start: startOfMonth(currentMonth),
-    end: endOfMonth(currentMonth),
-  })
+  // Get start and end of the month
+  const monthStart = startOfMonth(currentMonth)
+  const monthEnd = endOfMonth(monthStart)
+
+  // Get start and end of the calendar (including partial weeks)
+  const calendarStart = startOfWeek(monthStart)
+  const calendarEnd = endOfWeek(monthEnd)
+
+  // Get all days to display on the calendar
+  const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd })
 
   const previousMonth = () => {
     setCurrentMonth(prevMonth => new Date(prevMonth.getFullYear(), prevMonth.getMonth() - 1, 1))
@@ -33,7 +47,7 @@ export default function CalendarComponent() {
   }
 
   return (
-    <div>
+    <div className="bg-card rounded-lg p-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold">{format(currentMonth, 'MMMM yyyy')}</h2>
         <div className="flex space-x-2">
@@ -45,35 +59,47 @@ export default function CalendarComponent() {
           </Button>
         </div>
       </div>
+
       <div className="grid grid-cols-7 gap-2">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
           <div key={day} className="text-center font-medium text-muted-foreground">
             {day}
           </div>
         ))}
-        {days.map(day => {
+
+        {calendarDays.map(day => {
           const dateString = format(day, 'yyyy-MM-dd')
-          const tradeResult = tradeResults[dateString]
-          const bgColor = tradeResult
-            ? tradeResult.result === 'win'
-              ? 'bg-green-100 dark:bg-green-900'
-              : 'bg-red-100 dark:bg-red-900'
-            : ''
+          const dayData = tradesByDate[dateString]
+          const hasTrades = dayData && dayData.trades > 0
+          const isProfitable = dayData && dayData.pnl > 0
+          const isCurrentMonth = isSameMonth(day, currentMonth)
+
+          let bgColorClass = ''
+          if (hasTrades && isCurrentMonth) {
+            bgColorClass = isProfitable
+              ? 'bg-green-100 dark:bg-green-900/30'
+              : 'bg-red-100 dark:bg-red-900/30'
+          }
+
           return (
             <div
               key={day.toString()}
-              className={`p-2 text-center rounded-full ${
-                !isSameMonth(day, currentMonth)
-                  ? 'text-muted-foreground'
+              className={`p-2 text-center rounded-lg ${
+                !isCurrentMonth
+                  ? 'text-muted-foreground bg-muted/30'
                   : isToday(day)
                   ? 'bg-primary text-primary-foreground'
-                  : bgColor
+                  : bgColorClass
               }`}
             >
               <div>{format(day, 'd')}</div>
-              {tradeResult && (
-                <div className={`text-xs ${tradeResult.result === 'win' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                  {tradeResult.amount > 0 ? '+' : ''}{tradeResult.amount}
+              {dayData && isCurrentMonth && (
+                <div className={`text-xs ${
+                  dayData.pnl > 0
+                    ? 'text-green-600 dark:text-green-400'
+                    : 'text-red-600 dark:text-red-400'
+                }`}>
+                  {dayData.pnl > 0 ? '+' : ''}{dayData.pnl.toFixed(2)}
                 </div>
               )}
             </div>
